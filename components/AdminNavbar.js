@@ -33,29 +33,29 @@ export default function AdminNavbar() {
 
 	// Handle logout
 	const handleLogout = async () => {
-		console.log('function');
-				try {
-					// Send a POST request to the logout API to clear the JWT cookie
-					const response = await fetch("/api/auth/logout", {
-						method: "POST", // POST method for logout
-					});
+		console.log("function");
+		try {
+			// Send a POST request to the logout API to clear the JWT cookie
+			const response = await fetch("/api/auth/logout", {
+				method: "POST", // POST method for logout
+			});
 
-					console.log(response)
+			console.log(response);
 
-					if (response.ok) {
-						// Redirect user to the sign-in page after successful logout
-						router.push("/auth/signin");
-					} else {
-						console.error("Logout failed");
-					}
-				} catch (error) {
-					console.error("Error logging out:", error);
-				}
-			};
+			if (response.ok) {
+				// Redirect user to the sign-in page after successful logout
+				router.push("/auth/signin");
+			} else {
+				console.error("Logout failed");
+			}
+		} catch (error) {
+			console.error("Error logging out:", error);
+		}
+	};
 
 	return (
-		<nav className="fixed bottom-0 w-full bg-white border-t shadow-lg">
-			<div className="flex justify-around items-center py-2">
+		<nav className="fixed bottom-4 left-0 right-0 mx-auto bg-white border-t shadow-lg rounded-full p-4 max-w-md w-full">
+			<div className="flex justify-around items-center">
 				{/* Render the navigation items */}
 				{navItems.map((item) => (
 					<Link href={item.href} key={item.href}>
