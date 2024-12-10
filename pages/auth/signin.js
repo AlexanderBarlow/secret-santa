@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import Cookie from "js-cookie";
+import Image from "next/image"; // Import next/image for optimized image handling
 
 export default function SignIn() {
 	const [email, setEmail] = useState("");
@@ -45,7 +46,18 @@ export default function SignIn() {
 	};
 
 	return (
-		<div className="flex justify-center items-center min-h-screen bg-gray-100">
+		<div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
+			{/* Chick-fil-A Logo */}
+			<div className="flex justify-center mb-6">
+				<Image
+					src="/logo.png" // Path to your logo in the public folder
+					alt="Chick-fil-A Logo"
+					width={200} // Adjust the width according to your preference
+					height={80} // Adjust the height according to your preference
+				/>
+			</div>
+
+			{/* Sign In Form */}
 			<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
 				<h1 className="text-3xl font-semibold text-center mb-6">Sign In</h1>
 				<form onSubmit={handleSignIn} className="space-y-6">
@@ -89,7 +101,7 @@ export default function SignIn() {
 
 					<button
 						type="submit"
-						className="w-full py-3 mt-4 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+						className="w-full py-3 mt-4 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
 					>
 						Sign In
 					</button>

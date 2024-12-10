@@ -1,43 +1,40 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import Cookie from "js-cookie";
-import { useRouter } from "next/router";
+import { parseCookies } from "nookies";
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-	const [user, setUser] = useState(null); // Authentication state
-	const router = useRouter();
+export const AuthProvider = ({ children }) => {
+	const [user, setUser] = useState(null);
+
+	useEffect(() => {
+		// Get the user from cookies or localStorage
+		const cookies = parseCookies();
+		const token = cookies.auth_token; // Assuming your token is stored in cookies
+
+		if (token) {
+			// If token exists, you might want to fetch user data from your API
+			// or decode the token to get user information
+			setUser({ email: "user@example.com" }); // Example user data
+		}
+	}, []);
 
 	const login = (userData) => {
-		setUser(userData); // Save user data on login
-		Cookie.set("user", JSON.stringify(userData)); // Store in cookie
+		// Set user and token here, store them in cookies or session storage
+		setUser(userData);
 	};
 
 	const logout = () => {
-		setUser(null); // Clear user data on logout
-		Cookie.remove("user"); // Remove user cookie
-		router.push("/auth/signin"); // Redirect to sign-in page
+		// Clear the user and token on logout
+		setUser(null);
+		document.cookie =
+			"auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 	};
-
-	// Check cookie for user data on mount (useful for refreshes)
-	useEffect(() => {
-		const savedUser = Cookie.get("user");
-
-		if (savedUser) {
-			try {
-				setUser(JSON.parse(savedUser)); // Parse JSON safely
-			} catch (error) {
-				console.error("Error parsing user data from cookie:", error);
-				Cookie.remove("user"); // Remove invalid cookie if parsing fails
-			}
-		}
-	}, []);
 
 	return (
 		<AuthContext.Provider value={{ user, login, logout }}>
 			{children}
 		</AuthContext.Provider>
 	);
-}
+};
 
 export const useAuth = () => useContext(AuthContext);
