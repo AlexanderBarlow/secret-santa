@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
 	useEffect(() => {
 		// Get the user from cookies or localStorage
 		const cookies = parseCookies();
-		const token = cookies.auth_token; // Assuming your token is stored in cookies
+		const token = cookies.token; // Assuming your token is stored in cookies
 
 		if (token) {
 			// If token exists, you might want to fetch user data from your API
