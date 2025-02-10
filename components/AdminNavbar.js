@@ -44,6 +44,7 @@ export default function AdminNavbar() {
 
 			if (response.ok) {
 				// Redirect user to the sign-in page after successful logout
+				localStorage.removeItem("token");
 				router.push("/auth/signin");
 			} else {
 				console.error("Logout failed");

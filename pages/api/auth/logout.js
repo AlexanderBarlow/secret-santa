@@ -4,7 +4,7 @@ import { destroyCookie } from "nookies";
 export default function handler(req, res) {
 	// Check the HTTP method, make sure it's a POST request for logout
 	if (req.method === "POST") {
-		// Destroy the JWT cookie named 'auth_token'
+		// Destroy the JWT cookie named 'token'
 		destroyCookie({ res }, "token", { path: "/" });
 
 		// Respond with success

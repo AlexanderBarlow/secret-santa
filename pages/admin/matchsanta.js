@@ -1,53 +1,105 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar"; // Import AdminNavbar
+import Select from "react-select"; // Enhanced dropdown UI
 
 export default function MatchSantaPage() {
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [matches, setMatches] = useState([]); // To hold the matches
+	const [loading, setLoading] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [message, setMessage] = useState("");
+	const [matches, setMatches] = useState([]); // Holds the matches
+	const [unpaired, setUnpaired] = useState([]); // Holds unpaired users
+	const [users, setUsers] = useState([]); // All users
+
+	// Fetch users and initialize unpaired list
+	useEffect(() => {
+		const fetchUsers = async () => {
+			try {
+				const response = await axios.get("/api/admin/users"); // Endpoint to get all users
+				setUsers(response.data.users);
+				setUnpaired(response.data.users); // Initially, all users are unpaired
+			} catch (error) {
+				console.error("Error fetching users:", error);
+			}
+		};
+		fetchUsers();
+	}, []);
 
   const handleMatchUsers = async () => {
     setLoading(true);
     setMessage(""); // Reset message before request
 
-    try {
-      // Trigger the matching API endpoint
-      const response = await axios.post("/api/admin/users/matchusers");
-      console.log(response);
+		try {
+			const response = await axios.post("/api/admin/users/matchusers");
+			if (response.status === 200) {
+				setMessage("Users have been successfully matched!");
+				setMatches(response.data.matches);
 
-      if (response.status === 200) {
-        setMessage("Users have been successfully matched!");
-        setMatches(response.data.matches); // Set the matches received from the API
-      } else {
-        setMessage("An error occurred during the matching process.");
-      }
-    } catch (error) {
-      setMessage("An error occurred during the matching process.");
-    } finally {
-      setLoading(false);
-    }
-  };
+				// Update unpaired list based on matches
+				const pairedUsers = response.data.matches.flatMap((match) => [
+					match.giver,
+					match.receiver,
+				]);
+				setUnpaired(users.filter((user) => !pairedUsers.includes(user)));
+			} else {
+				setMessage("An error occurred during the matching process.");
+			}
+		} catch (error) {
+			setMessage("An error occurred during the matching process.");
+		} finally {
+			setLoading(false);
+		}
+	};
 
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-100 relative">
-      {/* Admin Navbar */}
-      <AdminNavbar />
+	const handleUpdateMatch = (giver, newReceiver) => {
+		setMatches((prevMatches) =>
+			prevMatches.map((match) =>
+				match.giver === giver ? { ...match, receiver: newReceiver } : match
+			)
+		);
+		setUnpaired((prevUnpaired) => {
+			const safePrevUnpaired = Array.isArray(prevUnpaired) ? prevUnpaired : [];
+			return [...safePrevUnpaired, currentReceiver].filter(
+				(user) => user !== newReceiver
+			);
+		});
+	};
 
-      {/* Large Round Button */}
-      <div className="relative flex justify-center items-center mt-12">
-        <button
-          onClick={handleMatchUsers}
-          disabled={loading}
-          className="w-28 h-28 bg-red-500 text-white rounded-full shadow-md text-lg font-semibold hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 z-10"
-        >
-          {loading ? "Loading..." : "Generate"}
-        </button>
-        {/* Decorative Line */}
-        <div className="w-full border-t-4 border-gray-300 absolute top-14">
-          <div className="absolute -top-2 left-[50%] transform -translate-x-[50%] bg-gray-100 w-28 h-6 rounded-b-full"></div>
-        </div>
-      </div>
+	const handleSaveChanges = async () => {
+		setSaving(true);
+		try {
+			const response = await axios.post("/api/admin/users/savematches", {
+				matches,
+			});
+			if (response.status === 200) {
+				setMessage("Matches saved successfully!");
+			} else {
+				setMessage("An error occurred while saving matches.");
+			}
+		} catch (error) {
+			console.error("Error saving matches:", error);
+			setMessage("An error occurred while saving matches.");
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<div className="flex flex-col min-h-screen bg-gray-100">
+			{/* Main Content Wrapper */}
+			<div className="flex flex-grow justify-center items-center p-8">
+				<div className="w-full max-w-lg bg-white p-8 rounded-lg shadow-lg">
+					<h1 className="text-3xl text-red-500 font-semibold text-center mb-6">
+						Match Santa
+					</h1>
+
+					<button
+						onClick={handleMatchUsers}
+						disabled={loading}
+						className="w-full py-3 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+					>
+						{loading ? "Matching..." : "Generate Matches"}
+					</button>
 
       {/* Matches Container */}
       <div className="flex justify-center items-start mt-16 px-4">
@@ -56,35 +108,75 @@ export default function MatchSantaPage() {
             Matched Results
           </h2>
 
-          {message && (
-            <p
-              className={`mb-6 text-center ${
-                message.includes("Error") ? "text-red-500" : "text-green-500"
-              }`}
-            >
-              {message}
-            </p>
-          )}
+					{/* Matches Section */}
+					{matches.length > 0 && (
+						<div className="mt-6">
+							<h2 className="text-xl font-semibold text-center text-black">
+								Matched Users
+							</h2>
+							<ul className="mt-4 space-y-4">
+								{matches.map((match, index) => (
+									<li key={index} className="flex items-center space-x-4">
+										<span className="text-black font-semibold">
+											{match.giver}
+										</span>
+										<span className="text-gray-500">→</span>
+										<Select
+											value={{
+												label: match.receiver,
+												value: match.receiver,
+											}}
+											options={[
+												...(unpaired ??
+													[].map((user) => ({
+														label: user,
+														value: user,
+													}))),
+												{ label: match.receiver, value: match.receiver }, // Include current receiver
+											]}
+											onChange={(selectedOption) =>
+												handleUpdateMatch(match.giver, selectedOption.value)
+											}
+											isDisabled={unpaired?.length === 0}
+										/>
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
 
-          {matches.length > 0 ? (
-            <ul className="space-y-4">
-              {matches.map((match, index) => (
-                <li
-                  key={index}
-                  className="p-4 bg-gray-100 rounded-lg shadow-sm text-gray-800"
-                >
-                  <span className="font-bold">{match.giver}</span> is buying for{" "}
-                  <span className="font-bold">{match.receiver}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-center text-gray-500">
-              No matches yet. Click "Generate" to create matches.
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+					{/* Unpaired Users */}
+					<div className="mt-6">
+						<h2 className="text-xl font-semibold text-center text-black">
+							Unpaired Users
+						</h2>
+						{unpaired?.length > 0 ? (
+							<ul className="mt-4 list-disc pl-6">
+								{unpaired.map((user, index) => (
+									<li key={index} className="text-black">
+										{user}
+									</li>
+								))}
+							</ul>
+						) : (
+							<p className="mt-4 text-center text-gray-500">
+								All users are paired.
+							</p>
+						)}
+					</div>
+
+					{/* Save Changes Button */}
+					<button
+						onClick={handleSaveChanges}
+						disabled={saving}
+						className="w-full py-3 mt-6 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+					>
+						{saving ? "Saving..." : "Save Matches"}
+					</button>
+				</div>
+			</div>
+			{/* Admin Navbar */}
+			<AdminNavbar />
+		</div>
+	);
 }
