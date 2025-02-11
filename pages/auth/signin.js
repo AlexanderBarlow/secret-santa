@@ -34,7 +34,7 @@ export default function SignIn() {
 					router.push("/admin/dashboard");
 				} else {
 					setIsValidToken(true); // User token is valid
-					router.push("/user/dashboard");
+					router.push("/userdash");
 				}
 			} catch (err) {
 				console.error("Invalid token:", err);
@@ -71,7 +71,7 @@ export default function SignIn() {
 				if (decodedToken.isAdmin) {
 					router.push("/admin/dashboard");
 				} else if (decodedToken.changedPassword){
-					router.push("/userdashb");
+					router.push("/userdash");
 				} else {
 					router.push("/user/changepassword")
 				}
