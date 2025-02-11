@@ -27,57 +27,59 @@ export default function Dashboard() {
 		};
 
 		fetchData();
-	}, []); // ✅ Empty dependency array to run only once
+	}, []);
 
 	return (
 		<div className="flex flex-col justify-between min-h-screen bg-gray-100">
 			{/* Main Content */}
-			<div className="flex justify-center items-center flex-grow">
-				<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-					<h1 className="text-3xl font-semibold text-center mb-6 text-black">
-						Admin Dashboard
-					</h1>
+			<div className="flex flex-col items-center flex-grow p-6">
+				<h1 className="text-3xl font-semibold text-center mb-6 text-black">
+					Admin Dashboard
+				</h1>
 
-					{/* Error Message */}
-					{error && <p className="text-red-500 text-center">{error}</p>}
+				{/* Error Message */}
+				{error && <p className="text-red-500 text-center">{error}</p>}
 
-					{/* Loading Indicator */}
-					{loading ? (
-						<p className="text-center text-black">Admin DashBoard Loading...</p>
-					) : (
-						<>
-							<h2 className="text-xl mt-4 text-black text-center">
-								{users.length > 0
-									? `Total Users: ${users.length}`
-									: "No users available."}
-							</h2>
+				{/* Loading Indicator */}
+				{loading ? (
+					<p className="text-center text-black">Admin Dashboard Loading...</p>
+				) : (
+					<>
+						<h2 className="text-xl mb-4 text-black text-center">
+							{users.length > 0
+								? `Total Users: ${users.length}`
+								: "No users available."}
+						</h2>
 
-							{/* List of Users */}
-							{users.length > 0 && (
-								<ul className="mt-4">
-									{users.map((user) => (
-										<li key={user.id} className="border-b py-2">
-											<p className="text-black">
-												<strong>ID:</strong> {user.id}
-											</p>
-											<p className="text-black">
-												<strong>Email:</strong> {user.email}
-											</p>
-											<p className="text-black">
-												<strong>Created At:</strong>{" "}
-												{new Date(user.createdAt).toLocaleDateString("en-US", {
-													month: "long",
-													day: "numeric",
-													year: "numeric",
-												})}
-											</p>
-										</li>
-									))}
-								</ul>
-							)}
-						</>
-					)}
-				</div>
+						{/* User Cards Grid */}
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
+							{users.map((user) => (
+								<div
+									key={user.id}
+									className="bg-white p-6 rounded-lg shadow-md border border-gray-300 flex flex-col justify-between min-h-[180px] break-words"
+								>
+									<h3 className="text-lg font-semibold text-black mb-2 truncate">
+										User ID: {user.id}
+									</h3>
+									<p className="text-black text-sm break-words">
+										<strong>Email:</strong> {user.email}
+									</p>
+									<p className="text-black text-sm truncate">
+										<strong>Password:</strong> {user.password}
+									</p>
+									<p className="text-black text-sm">
+										<strong>Created At:</strong>{" "}
+										{new Date(user.createdAt).toLocaleDateString("en-US", {
+											month: "long",
+											day: "numeric",
+											year: "numeric",
+										})}
+									</p>
+								</div>
+							))}
+						</div>
+					</>
+				)}
 			</div>
 
 			{/* Bottom Navigation Bar */}

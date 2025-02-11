@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { useRouter } from "next/router"; // Correctly use useRouter instead of Router
 
 export default function ChangePassword() {
 	const [currentPassword, setCurrentPassword] = useState("");
@@ -7,11 +8,12 @@ export default function ChangePassword() {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState("");
+	const router = useRouter(); // Create router instance
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		setError("");
-		setSuccess("");
+		setError(""); // Clear previous error messages
+		setSuccess(""); // Clear previous success messages
 
 		// Basic validation
 		if (!currentPassword || !newPassword || !confirmPassword) {
@@ -30,19 +32,28 @@ export default function ChangePassword() {
 		}
 
 		try {
-			// Replace with your API endpoint
-			const response = await axios.post("/api/auth/change-password", {
-				currentPassword,
-				newPassword,
-			});
+			const token = localStorage.getItem("token"); // Retrieve token from local storage
 
+			const response = await axios.post(
+				"/api/auth/change-password",
+				{ currentPassword, newPassword },
+				{
+					headers: {
+						Authorization: `Bearer ${token}`, // Pass token in headers
+					},
+				}
+			);
+
+			// Check if the response status is successful (200)
 			if (response.status === 200) {
-				setSuccess("Password changed successfully!");
-				setCurrentPassword("");
+				setSuccess("Password changed successfully!"); // Show success message
+				setCurrentPassword(""); // Clear the input fields
 				setNewPassword("");
 				setConfirmPassword("");
+				router.push("/user/dashboard"); // Redirect after successful password change
 			}
 		} catch (err) {
+			// Handle error from the API
 			setError(err.response?.data?.error || "Failed to change password.");
 		}
 	};
@@ -63,7 +74,7 @@ export default function ChangePassword() {
 							type="password"
 							value={currentPassword}
 							onChange={(e) => setCurrentPassword(e.target.value)}
-							className="w-full p-3 border border-gray-300 rounded-md mt-1"
+							className="w-full p-3 border border-gray-300 rounded-md mt-1 text-black"
 							required
 						/>
 					</div>
@@ -77,7 +88,7 @@ export default function ChangePassword() {
 							type="password"
 							value={newPassword}
 							onChange={(e) => setNewPassword(e.target.value)}
-							className="w-full p-3 border border-gray-300 rounded-md mt-1"
+							className="w-full p-3 border border-gray-300 rounded-md mt-1 text-black"
 							required
 						/>
 					</div>
@@ -91,7 +102,7 @@ export default function ChangePassword() {
 							type="password"
 							value={confirmPassword}
 							onChange={(e) => setConfirmPassword(e.target.value)}
-							className="w-full p-3 border border-gray-300 rounded-md mt-1"
+							className="w-full p-3 border border-gray-300 rounded-md mt-1 text-black"
 							required
 						/>
 					</div>
