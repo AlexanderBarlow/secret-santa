@@ -70,8 +70,10 @@ export default function SignIn() {
 				// Redirect based on role
 				if (decodedToken.isAdmin) {
 					router.push("/admin/dashboard");
-				} else {
+				} else if (decodedToken.changedPassword){
 					router.push("/user/dashboard");
+				} else {
+					router.push("/user/changepassword")
 				}
 			} else {
 				setError("Invalid email or password.");
