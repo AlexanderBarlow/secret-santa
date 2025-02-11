@@ -71,7 +71,7 @@ export default function SignIn() {
 				if (decodedToken.isAdmin) {
 					router.push("/admin/dashboard");
 				} else if (decodedToken.changedPassword){
-					router.push("/user/dashboard");
+					router.push("/userdashb");
 				} else {
 					router.push("/user/changepassword")
 				}
