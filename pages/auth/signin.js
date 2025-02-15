@@ -44,7 +44,7 @@ export default function SignIn() {
 		} else if (isValidToken === null) {
 			setIsValidToken(false); // No token or valid token is null
 		}
-	}, [router, isValidToken]);
+	}, [isValidToken]);
 
 	const handleSignIn = async (e) => {
 		e.preventDefault();
@@ -70,10 +70,10 @@ export default function SignIn() {
 				// Redirect based on role
 				if (decodedToken.isAdmin) {
 					router.push("/admin/dashboard");
-				} else if (decodedToken.changedPassword){
+				} else if (decodedToken.changedPassword) {
 					router.push("/userdash");
 				} else {
-					router.push("/user/changepassword")
+					router.push("/user/changepassword");
 				}
 			} else {
 				setError("Invalid email or password.");
@@ -95,6 +95,11 @@ export default function SignIn() {
 		}
 	};
 
+	// Function to navigate to the create account page
+	const navigateToCreateAccount = () => {
+		router.push("/auth/signup");
+	};
+
 	return (
 		<div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
 			<div className="flex justify-center mb-6">
@@ -102,7 +107,7 @@ export default function SignIn() {
 			</div>
 
 			<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-				<h1 className="text-3xl font-semibold text-center mb-6">Sign In</h1>
+				<h1 className="text-3xl font-semibold text-center mb-6 text-black">Sign In</h1>
 				<form onSubmit={handleSignIn} className="space-y-6">
 					<div>
 						<label
@@ -145,7 +150,9 @@ export default function SignIn() {
 					)}
 
 					{/* Show loading spinner */}
-					{loading && <p className="text-center text-black">Sign In Page Loading...</p>}
+					{loading && (
+						<p className="text-center text-black">Sign In Page Loading...</p>
+					)}
 
 					<button
 						type="submit"
@@ -154,6 +161,15 @@ export default function SignIn() {
 						Sign In
 					</button>
 				</form>
+				<p className="text-center mt-4 text-black">
+					New User?{" "}
+					<span
+						onClick={navigateToCreateAccount}
+						className="text-blue-500 hover:underline cursor-pointer"
+					>
+						Sign Up Here
+					</span>
+				</p>
 			</div>
 		</div>
 	);

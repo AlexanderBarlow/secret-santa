@@ -50,7 +50,7 @@ export default function ChangePassword() {
 				setCurrentPassword(""); // Clear the input fields
 				setNewPassword("");
 				setConfirmPassword("");
-				router.push("/user/dashboard"); // Redirect after successful password change
+				router.push("/userdash"); // Redirect after successful password change
 			}
 		} catch (err) {
 			// Handle error from the API
