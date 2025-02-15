@@ -24,8 +24,23 @@ export default async function handler(req, res) {
 		} catch (error) {
 			return res.status(500).json({ error: "Error saving admin code." });
 		}
+	} else if (req.method === "GET") {
+		// Fetch the current admin code from the database
+		try {
+			const adminCode = await prisma.adminCode.findUnique({
+				where: { id: 1 }, // Assuming only one admin code is stored
+			});
+
+			if (!adminCode) {
+				return res.status(404).json({ error: "Admin code not found." });
+			}
+
+			return res.status(200).json({ adminCode: adminCode.code });
+		} catch (error) {
+			return res.status(500).json({ error: "Error fetching admin code." });
+		}
 	} else {
-		res.setHeader("Allow", ["POST"]);
+		res.setHeader("Allow", ["GET", "POST"]);
 		res.status(405).json({ error: `Method ${req.method} Not Allowed` });
 	}
 }

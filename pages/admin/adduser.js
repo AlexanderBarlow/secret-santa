@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
 
@@ -6,6 +6,21 @@ export default function SetAdminCode() {
 	const [adminCode, setAdminCode] = useState("");
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState(false);
+	const [currentCode, setCurrentCode] = useState("");
+
+	// Fetch the current admin code when the component mounts
+	useEffect(() => {
+		const fetchAdminCode = async () => {
+			try {
+				const response = await axios.get("/api/admin/users/adduser");
+				setCurrentCode(response.data.adminCode); // Set the fetched admin code
+			} catch (err) {
+				setError(err.response?.data?.error || "Failed to fetch admin code.");
+			}
+		};
+
+		fetchAdminCode();
+	}, []);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -13,7 +28,7 @@ export default function SetAdminCode() {
 		setSuccess(false);
 
 		try {
-			// Send the admin code to the API
+			// Send the updated admin code to the API
 			await axios.post("/api/admin/users/adduser", { adminCode });
 			setSuccess(true);
 		} catch (err) {
@@ -36,6 +51,13 @@ export default function SetAdminCode() {
 					{success && (
 						<p className="text-green-500 text-center mb-4">
 							Admin code saved successfully!
+						</p>
+					)}
+
+					{/* Current Admin Code */}
+					{currentCode && (
+						<p className="text-center text-black mb-4">
+							Current Admin Code: {currentCode}
 						</p>
 					)}
 
