@@ -15,7 +15,7 @@ export async function getServerSideProps(context) {
 	// User is not logged in, redirect to sign-in page
 	return {
 		redirect: {
-			destination: "/auth/create",
+			destination: "/auth/signin",
 			permanent: false,
 		},
 	};
