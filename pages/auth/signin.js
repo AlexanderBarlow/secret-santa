@@ -72,9 +72,7 @@ export default function SignIn() {
 					router.push("/admin/dashboard");
 				} else if (decodedToken.changedPassword) {
 					router.push("/userdash");
-				} else {
-					router.push("/user/changepassword");
-				}
+				} 
 			} else {
 				setError("Invalid email or password.");
 			}
