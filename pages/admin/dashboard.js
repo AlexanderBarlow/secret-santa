@@ -15,6 +15,8 @@ export default function Dashboard() {
         );
         if (usersResponse.status === 200) {
           setUsers(usersResponse.data);
+		  console.log(usersResponse.data);
+		  
         } else {
           setUsers([]);
         }
@@ -126,10 +128,11 @@ export default function Dashboard() {
                       Wishlist:
                     </h4>
                     <ul className="list-disc pl-5">
-                      {user.wishlist && user.wishlist.length > 0 ? (
-                        user.wishlist.map((item, index) => (
+                      {user.wishlist && user.wishlist.items.length > 0 ? (
+                        user.wishlist.items.map((item, index) => (
                           <li key={index} className="text-black text-sm">
-                            {item}
+                            {item.item}{" "}
+                            {/* Access the 'item' attribute inside WishlistItem */}
                           </li>
                         ))
                       ) : (
