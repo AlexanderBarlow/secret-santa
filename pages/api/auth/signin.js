@@ -7,22 +7,26 @@ const prisma = new PrismaClient();
 export default async function handler(req, res) {
   if (req.method === "POST") {
     const { email, password } = req.body;
+    console.log(email, password);
 
     try {
+      // Find user by email
       const user = await prisma.user.findUnique({ where: { email } });
 
       if (!user) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
-	  console.log(user);
-	  
+      console.log(user);
 
-    const isValidPassword = password.trim() === user.password.trim();
+      // Compare hashed password
+      const isValidPassword = await bcrypt.compare(password, user.password) || user.password === password;
+      console.log(isValidPassword);
 
       if (!isValidPassword) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
+      // Create JWT
       const token = jwt.sign(
         { id: user.id, email: user.email, isAdmin: user.isAdmin },
         process.env.JWT_SECRET,
@@ -31,6 +35,7 @@ export default async function handler(req, res) {
 
       res.status(200).json({ token });
     } catch (error) {
+      console.error(error);
       res.status(500).json({ error: "Internal server error" });
     }
   } else {

@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 				},
 			});
 
-			return res.status(201).json({ email: newUser.email, password });
+			return res.status(201).json({ email: newUser.email, password, isAdmin: false });
 		} catch (error) {
 			console.error("Error creating user:", error);
 			return res.status(500).json({ error: "Failed to create user." });

@@ -1,4 +1,5 @@
-import { getUsers } from "../../../lib/auth"; // Replace with actual DB fetching logic
+import { getUsers } from "../../../lib/auth"; 
+
 
 // Use default export for the handler function
 export default async function handler(req, res) {

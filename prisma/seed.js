@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const prisma = new PrismaClient();
 
 async function main() {
-	const hashedPassword = await bcrypt.hash("adminpassword", 10); // Replace with a secure password
+	const hashedPassword = "adminpassword"; // Replace with a secure password
 	await prisma.user.create({
 		data: {
 			email: "admin@example.com",
