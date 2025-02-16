@@ -1,65 +1,113 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import Cookie from "js-cookie";
-import Image from "next/image"; // Import next/image for optimized image handling
+import { jwtDecode } from "jwt-decode"; // Correct import
+import Image from "next/image";
 
 export default function SignIn() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false); // Add loading state
 	const router = useRouter();
+	const [isValidToken, setIsValidToken] = useState(null); // New state for token validation
 
-	// Redirect to dashboard if token is present in cookies
+	// Redirect if a valid token exists in localStorage
 	useEffect(() => {
-		const token = Cookie.get("token");
-		if (token) {
-			router.push("/admin/dashboard");
+		const token = localStorage.getItem("token");
+
+		// Only check token if it exists
+		if (token && isValidToken === null) {
+			try {
+				const decodedToken = jwtDecode(token);
+
+				// Check if token is expired
+				if (decodedToken.exp * 1000 < Date.now()) {
+					localStorage.removeItem("token");
+					setIsValidToken(false); // Token is invalid
+					return;
+				}
+
+				// Token is valid, check if the page is ready for redirection
+				if (decodedToken.isAdmin) {
+					setIsValidToken(true); // Admin token is valid
+					router.push("/admin/dashboard");
+				} else {
+					setIsValidToken(true); // User token is valid
+					router.push("/userdash");
+				}
+			} catch (err) {
+				console.error("Invalid token:", err);
+				localStorage.removeItem("token");
+				setIsValidToken(false); // Invalid token
+			}
+		} else if (isValidToken === null) {
+			setIsValidToken(false); // No token or valid token is null
 		}
-	}, [router]);
+	}, [isValidToken]);
 
 	const handleSignIn = async (e) => {
 		e.preventDefault();
+		setLoading(true); // Start loading
 
 		try {
-			// Send a POST request to authenticate the user
 			const response = await axios.post(
 				"http://localhost:3000/api/auth/signin",
-				{
-					email,
-					password,
-				}
+				{ email, password }
 			);
 
-			// On successful login, store the JWT token in cookies
 			if (response.data && response.data.token) {
-				const { token, user } = response.data;
-				Cookie.set("token", token, { expires: 1 }); // Store token with 1 day expiration
-				Cookie.set("user", JSON.stringify(user), { expires: 1 }); // Store user info in cookies
-				router.push("/admin/dashboard");
+				const { token } = response.data;
+
+				// Store token in localStorage
+				localStorage.setItem("token", token);
+				console.log("Token stored:", token);
+
+				// Decode token
+				const decodedToken = jwtDecode(token);
+				console.log("Decoded Token:", decodedToken);
+
+				// Redirect based on role
+				if (decodedToken.isAdmin) {
+					router.push("/admin/dashboard");
+				} else if (decodedToken.changedPassword) {
+					router.push("/userdash");
+				} else {
+					router.push("/user/changepassword");
+				}
 			} else {
-				setError("Invalid email or password");
+				setError("Invalid email or password.");
 			}
-		} catch (error) {
-			setError("An error occurred. Please try again.");
+		} catch (err) {
+			if (err.response) {
+				if (err.response.status === 401) {
+					setError("Invalid email or password.");
+				} else if (err.response.status === 500) {
+					setError("Server error. Please try again later.");
+				} else {
+					setError("An unexpected error occurred.");
+				}
+			} else {
+				setError("Network error. Please check your connection.");
+			}
+		} finally {
+			setLoading(false); // Stop loading
 		}
+	};
+
+	// Function to navigate to the create account page
+	const navigateToCreateAccount = () => {
+		router.push("/auth/signup");
 	};
 
 	return (
 		<div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
-			{/* Chick-fil-A Logo */}
 			<div className="flex justify-center mb-6">
-				<Image
-					src="/logo.png" // Path to your logo in the public folder
-					alt="Chick-fil-A Logo"
-					width={200} // Adjust the width according to your preference
-					height={80} // Adjust the height according to your preference
-				/>
+				<Image src="/logo.png" alt="Chick-fil-A Logo" width={200} height={80} />
 			</div>
 
-			{/* Sign In Form */}
 			<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-				<h1 className="text-3xl font-semibold text-center mb-6">Sign In</h1>
+				<h1 className="text-3xl font-semibold text-center mb-6 text-black">Sign In</h1>
 				<form onSubmit={handleSignIn} className="space-y-6">
 					<div>
 						<label
@@ -74,7 +122,8 @@ export default function SignIn() {
 							placeholder="Email"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
-							className="mt-2 p-3 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"
+							required
 						/>
 					</div>
 
@@ -91,7 +140,8 @@ export default function SignIn() {
 							placeholder="Password"
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
-							className="mt-2 p-3 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"
+							required
 						/>
 					</div>
 
@@ -99,13 +149,27 @@ export default function SignIn() {
 						<p className="text-red-500 text-sm mt-2 text-center">{error}</p>
 					)}
 
+					{/* Show loading spinner */}
+					{loading && (
+						<p className="text-center text-black">Sign In Page Loading...</p>
+					)}
+
 					<button
 						type="submit"
-						className="w-full py-3 mt-4 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+						className="w-full py-3 mt-4 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600"
 					>
 						Sign In
 					</button>
 				</form>
+				<p className="text-center mt-4 text-black">
+					New User?{" "}
+					<span
+						onClick={navigateToCreateAccount}
+						className="text-blue-500 hover:underline cursor-pointer"
+					>
+						Sign Up Here
+					</span>
+				</p>
 			</div>
 		</div>
 	);

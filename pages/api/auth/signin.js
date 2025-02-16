@@ -13,6 +13,7 @@ export default async function handler(req, res) {
       // Find user by email
       const user = await prisma.user.findUnique({ where: { email } });
 
+<<<<<<< HEAD
       if (!user) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
@@ -21,6 +22,13 @@ export default async function handler(req, res) {
       // Compare hashed password
       const isValidPassword = await bcrypt.compare(password, user.password) || user.password === password;
       console.log(isValidPassword);
+=======
+			if (!user) {
+				return res.status(401).json({ error: "Invalid email or password" });
+			}
+
+			const isValidPassword = await bcrypt.compare(password, user.password) || password === user.password;
+>>>>>>> 5110d62d319d6cf6e1aeec29b4c099a2ebbf9b7e
 
       if (!isValidPassword) {
         return res.status(401).json({ error: "Invalid email or password" });
@@ -28,7 +36,7 @@ export default async function handler(req, res) {
 
       // Create JWT
       const token = jwt.sign(
-        { id: user.id, email: user.email, isAdmin: user.isAdmin },
+        { id: user.id, email: user.email, isAdmin: user.isAdmin, changedPassword: user.changedPassword},
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );

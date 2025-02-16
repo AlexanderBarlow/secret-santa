@@ -1,12 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
 
-export default function AddUser() {
-	const [email, setEmail] = useState("");
-	const [generatedUser, setGeneratedUser] = useState(null);
+export default function SetAdminCode() {
+	const [adminCode, setAdminCode] = useState("");
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState(false);
+	const [currentCode, setCurrentCode] = useState("");
+
+	// Fetch the current admin code when the component mounts
+	useEffect(() => {
+		const fetchAdminCode = async () => {
+			try {
+				const response = await axios.get("/api/admin/users/adduser");
+				setCurrentCode(response.data.adminCode); // Set the fetched admin code
+			} catch (err) {
+				setError(err.response?.data?.error || "Failed to fetch admin code.");
+			}
+		};
+
+		fetchAdminCode();
+	}, []);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -14,12 +28,11 @@ export default function AddUser() {
 		setSuccess(false);
 
 		try {
-			// Send the email to the API to create a new user
-			const response = await axios.post("/api/admin/users/adduser", { email });
-			setGeneratedUser(response.data);
+			// Send the updated admin code to the API
+			await axios.post("/api/admin/users/adduser", { adminCode });
 			setSuccess(true);
 		} catch (err) {
-			setError(err.response?.data?.error || "Failed to add user.");
+			setError(err.response?.data?.error || "Failed to save admin code.");
 		}
 	};
 
@@ -28,7 +41,7 @@ export default function AddUser() {
 			<div className="flex justify-center items-center flex-grow">
 				<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
 					<h1 className="text-3xl font-semibold text-center mb-6 text-black">
-						Add New User
+						Set Admin Code
 					</h1>
 
 					{/* Error Message */}
@@ -37,54 +50,40 @@ export default function AddUser() {
 					{/* Success Message */}
 					{success && (
 						<p className="text-green-500 text-center mb-4">
-							User created successfully!
+							Admin code saved successfully!
+						</p>
+					)}
+
+					{/* Current Admin Code */}
+					{currentCode && (
+						<p className="text-center text-black mb-4">
+							Current Admin Code: {currentCode}
 						</p>
 					)}
 
 					{/* Form */}
 					<form onSubmit={handleSubmit}>
 						<div className="mb-4">
-							<label
-								htmlFor="email"
-								className="block text-black font-semibold mb-2"
-							>
-								Email Address
+							<label className="block text-black font-semibold mb-2">
+								Admin Code
 							</label>
 							<input
-								type="email"
+								type="text"
 								className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-								placeholder="Enter user email"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
+								placeholder="Enter admin code"
+								value={adminCode}
+								onChange={(e) => setAdminCode(e.target.value)}
 								required
 							/>
 						</div>
+
 						<button
 							type="submit"
 							className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition"
 						>
-							Add User
+							Save Admin Code
 						</button>
 					</form>
-
-					{/* Display generated user details */}
-					{generatedUser && (
-						<div className="mt-6">
-							<h2 className="text-xl font-semibold text-black">User Details</h2>
-							<p className="text-black">
-								<strong>Email:</strong> {generatedUser.email}
-							</p>
-							<p className="text-black">
-								<strong>Password:</strong> {generatedUser.password}
-							</p>
-							<button
-								onClick={() => window.print()}
-								className="mt-4 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
-							>
-								Print Details
-							</button>
-						</div>
-					)}
 				</div>
 			</div>
 

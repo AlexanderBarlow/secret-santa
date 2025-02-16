@@ -8,21 +8,26 @@ export default function ProtectedRoute({ children }) {
 	const router = useRouter();
 
 	useEffect(() => {
-		// Check if there is a token in cookies
-		const token = Cookie.get("token");
+		// Check if there is a token in localStorage
+		const token = localStorage.getItem("token");
 
+		// If there's no token, redirect to the sign-in page
 		if (!token) {
-			// If no token is found, redirect to the sign-in page
-			router.push("/auth/signin");
+			// Redirect only if we're not already on the sign-in page
+			if (router.pathname !== "/auth/signin") {
+				router.push("/auth/signin");
+			} else {
+				setLoading(false); // Stop loading if we're already on the sign-in page
+			}
 		} else {
-			// Optionally, you can decode the token here to get user info
+			// Optionally, decode the token and get user data
 			setUser({ email: "admin@example.com" }); // Example user data, replace with real data
 			setLoading(false);
 		}
-	}, [router]);
+	}, [router.pathname]); // Only re-run the effect if the pathname changes
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return <div>Protected Route Loading...</div>;
 	}
 
 	return <>{children}</>;
