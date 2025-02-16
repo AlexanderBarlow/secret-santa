@@ -13,22 +13,11 @@ export default async function handler(req, res) {
       // Find user by email
       const user = await prisma.user.findUnique({ where: { email } });
 
-<<<<<<< HEAD
-      if (!user) {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-      console.log(user);
-
-      // Compare hashed password
-      const isValidPassword = await bcrypt.compare(password, user.password) || user.password === password;
-      console.log(isValidPassword);
-=======
 			if (!user) {
 				return res.status(401).json({ error: "Invalid email or password" });
 			}
 
 			const isValidPassword = await bcrypt.compare(password, user.password) || password === user.password;
->>>>>>> 5110d62d319d6cf6e1aeec29b4c099a2ebbf9b7e
 
       if (!isValidPassword) {
         return res.status(401).json({ error: "Invalid email or password" });
