@@ -22,6 +22,7 @@ model User {
   matchedSantaId  Int?     @unique
 
   matchedBy       User?    @relation("UserMatchedSanta")
+  Accepted        Boolean  @default(false)
 }
 
 

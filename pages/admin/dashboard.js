@@ -29,6 +29,28 @@ export default function Dashboard() {
 		fetchData();
 	}, []);
 
+	const handleRemoveUser = async (id) => {
+		const confirmDelete = window.confirm(
+			"Are you sure you want to remove this user?"
+		);
+		if (confirmDelete) {
+			try {
+				const response = await axios.delete(
+					`http://localhost:3000/api/admin/users/remove/${id}`
+				);
+				if (response.status === 200) {
+					// Remove user from state
+					setUsers(users.filter((user) => user.id !== id));
+				} else {
+					setError("Error removing user. Please try again.");
+				}
+			} catch (err) {
+				console.error("Error removing user:", err);
+				setError("Failed to remove user. Please try again.");
+			}
+		}
+	};
+
 	return (
 		<div className="flex flex-col justify-between min-h-screen bg-gray-100">
 			{/* Main Content */}
@@ -56,7 +78,7 @@ export default function Dashboard() {
 							{users.map((user) => (
 								<div
 									key={user.id}
-									className="bg-white p-6 rounded-lg shadow-md border border-gray-300 flex flex-col justify-between min-h-[180px] break-words"
+									className="bg-white p-6 rounded-lg shadow-md border border-gray-300 flex flex-col justify-between min-h-[230px] break-words"
 								>
 									<h3 className="text-lg font-semibold text-black mb-2 truncate">
 										User ID: {user.id}
@@ -67,14 +89,60 @@ export default function Dashboard() {
 									<p className="text-black text-sm truncate">
 										<strong>Password:</strong> {user.password}
 									</p>
-									<p className="text-black text-sm">
-										<strong>Created At:</strong>{" "}
-										{new Date(user.createdAt).toLocaleDateString("en-US", {
-											month: "long",
-											day: "numeric",
-											year: "numeric",
-										})}
-									</p>
+
+									{/* Display matchedSanta and wishlist */}
+									<div className="mt-4">
+										<h4 className="text-sm text-black font-semibold">
+											Matched Santa:
+										</h4>
+										<p className="text-black text-sm">
+											{user.matchedSanta || "N/A"}
+										</p>
+
+										<h4 className="text-sm text-black font-semibold mt-2">
+											Wishlist:
+										</h4>
+										<ul className="list-disc pl-5">
+											{user.wishlist && user.wishlist.length > 0 ? (
+												user.wishlist.map((item, index) => (
+													<li key={index} className="text-black text-sm">
+														{item}
+													</li>
+												))
+											) : (
+												<li className="text-black text-sm">
+													No items in wishlist.
+												</li>
+											)}
+										</ul>
+
+										{/* Accepted Status with Highlighting */}
+										<h4 className="text-sm text-black font-semibold mt-2">
+											Accepted Status:
+										</h4>
+										<p
+											className={`text-sm font-semibold p-2 rounded mt-1 ${
+												user.Accepted
+													? "bg-green-200 text-green-800"
+													: "bg-yellow-200 text-yellow-800"
+											}`}
+										>
+											{user.Accepted ? "Accepted" : "Pending"}
+										</p>
+									</div>
+
+									{/* Remove Button */}
+									<button
+										onClick={() => handleRemoveUser(user.id)}
+										className="w-full py-3 mt-4 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+									>
+										Remove User
+									</button>
+									<button
+										className="w-full py-3 mt-4 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+									>
+										Accept User
+									</button>
 								</div>
 							))}
 						</div>
