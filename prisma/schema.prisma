@@ -18,13 +18,15 @@ model User {
 
   wishlist        Wishlist?
 
-  matchedSanta    User?    @relation("UserMatchedSanta", fields: [matchedSantaId], references: [id])
+  // Define the first side of the relation (matchedSanta) with fields and references
+  matchedSanta    User?    @relation("UserSanta", fields: [matchedSantaId], references: [id])
   matchedSantaId  Int?     @unique
 
-  matchedBy       User?    @relation("UserMatchedSanta")
+  // Define the reverse relation for matchedBy (without fields and references)
+  matchedBy       User?    @relation("UserSanta")
+
   Accepted        Boolean  @default(false)
 }
-
 
 model Wishlist {
   id            Int       @id @default(autoincrement())
@@ -45,3 +47,4 @@ model AdminCode {
   id   Int    @id @default(autoincrement())
   code String @unique
 }
+

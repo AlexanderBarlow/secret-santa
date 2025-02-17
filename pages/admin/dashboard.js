@@ -143,7 +143,7 @@ export default function Dashboard() {
                     Matched Santa:
                   </h4>
                   <p className="text-black text-sm">
-                    {user.matchedSanta || "N/A"}
+                    {user.matchedSanta.email || "N/A"}
                   </p>
 
                   {/* Wishlist */}
