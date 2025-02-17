@@ -70,7 +70,7 @@ export default function SignIn() {
 				// Redirect based on role
 				if (decodedToken.isAdmin) {
 					router.push("/admin/dashboard");
-				} else if (decodedToken.changedPassword) {
+				} else if (!decodedToken.isAdmin) {
 					router.push("/userdash");
 				} 
 			} else {
@@ -112,12 +112,12 @@ export default function SignIn() {
 							htmlFor="email"
 							className="block text-sm font-medium text-gray-600"
 						>
-							Email
+							Full Name
 						</label>
 						<input
-							type="email"
+							type="test"
 							id="email"
-							placeholder="Email"
+							placeholder="Name"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"

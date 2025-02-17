@@ -156,9 +156,8 @@ export default function UserDashboard() {
             {user && (
               <div className="mb-6 text-center">
                 <h2 className="text-2xl font-semibold text-gray-800">
-                  Welcome, {user.name}! 🎄
+                  Welcome, {user.email}! 🎄
                 </h2>
-                <p className="text-gray-600 mt-1">Email: {user.email}</p>
               </div>
             )}
 

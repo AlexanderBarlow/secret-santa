@@ -69,10 +69,10 @@ export default function SignUp() {
 
 				<form onSubmit={handleSignUp} className="space-y-6">
 					<div>
-						<label className="block text-black font-semibold mb-2">Email</label>
+						<label className="block text-black font-semibold mb-2">Full Name</label>
 						<input
-							type="email"
-							placeholder="Enter your email"
+							type="text"
+							placeholder="Enter your full name"
 							value={username}
 							onChange={(e) => setUsername(e.target.value)}
 							className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
