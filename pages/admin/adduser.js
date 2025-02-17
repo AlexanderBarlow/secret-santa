@@ -37,58 +37,58 @@ export default function SetAdminCode() {
 	};
 
 	return (
-		<div className="flex flex-col justify-between min-h-screen bg-gray-100">
-			<div className="flex justify-center items-center flex-grow">
-				<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-					<h1 className="text-3xl font-semibold text-center mb-6 text-black">
-						Set Admin Code
-					</h1>
+    <div className="flex flex-col justify-between min-h-screen bg-gray-100">
+      <div className="flex justify-center items-center flex-grow">
+        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+          <h1 className="text-3xl font-semibold text-center mb-6 text-black">
+            Set Admin Code
+          </h1>
 
-					{/* Error Message */}
-					{error && <p className="text-red-500 text-center">{error}</p>}
+          {/* Error Message */}
+          {error && <p className="text-red-500 text-center">{error}</p>}
 
-					{/* Success Message */}
-					{success && (
-						<p className="text-green-500 text-center mb-4">
-							Admin code saved successfully!
-						</p>
-					)}
+          {/* Success Message */}
+          {success && (
+            <p className="text-green-500 text-center mb-4">
+              Admin code saved successfully!
+            </p>
+          )}
 
-					{/* Current Admin Code */}
-					{currentCode && (
-						<p className="text-center text-black mb-4">
-							Current Admin Code: {currentCode}
-						</p>
-					)}
+          {/* Current Admin Code */}
+          {currentCode && (
+            <p className="text-center text-black mb-4">
+              Current Admin Code: <span className="text-red-600 font-bold">{currentCode}</span>
+            </p>
+          )}
 
-					{/* Form */}
-					<form onSubmit={handleSubmit}>
-						<div className="mb-4">
-							<label className="block text-black font-semibold mb-2">
-								Admin Code
-							</label>
-							<input
-								type="text"
-								className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-								placeholder="Enter admin code"
-								value={adminCode}
-								onChange={(e) => setAdminCode(e.target.value)}
-								required
-							/>
-						</div>
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-black font-semibold mb-2">
+                Admin Code
+              </label>
+              <input
+                type="text"
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                placeholder="Enter admin code"
+                value={adminCode}
+                onChange={(e) => setAdminCode(e.target.value)}
+                required
+              />
+            </div>
 
-						<button
-							type="submit"
-							className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition"
-						>
-							Save Admin Code
-						</button>
-					</form>
-				</div>
-			</div>
+            <button
+              type="submit"
+              className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-800 transition"
+            >
+              Save Admin Code
+            </button>
+          </form>
+        </div>
+      </div>
 
-			{/* Admin Navbar */}
-			<AdminNavbar />
-		</div>
-	);
+      {/* Admin Navbar */}
+      <AdminNavbar />
+    </div>
+  );
 }

@@ -11,7 +11,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const cookies = parseCookies();
     const token = cookies.token;
-    console.log("Token:", token);
 
   if (token) {
    const base64Url = token.split(".")[1]; // Extract the payload

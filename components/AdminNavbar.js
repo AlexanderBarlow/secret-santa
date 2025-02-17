@@ -22,7 +22,7 @@ export default function AdminNavbar() {
 		{
 			href: "/admin/adduser",
 			icon: faPlus,
-			label: "Add User",
+			label: "Join Code",
 		},
 		{
 			href: "/admin/matchsanta",
