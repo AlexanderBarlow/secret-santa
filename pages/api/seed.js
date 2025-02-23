@@ -11,7 +11,6 @@ export default async function handler(req, res) {
 			// Example seed
 			await prisma.user.create({
 				data: {
-					name: "Admin User",
 					email: "admin@domain.com",
 					password: "adminpassword",
 				},
