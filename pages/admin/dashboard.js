@@ -15,10 +15,13 @@ export default function Dashboard() {
 		const fetchData = async () => {
 			try {
 				const usersResponse = await axios.get("/api/admin/users");
-				if (usersResponse.status === 200) {
-					setUsers(usersResponse.data);
+				console.log("API Response:", usersResponse.data); // Debugging step
+
+				if (Array.isArray(usersResponse.data)) {
+					setUsers(usersResponse.data || []);
 				} else {
-					setUsers([]);
+					console.error("Unexpected data format:", usersResponse.data);
+					setUsers([]); // Ensure users is always an array
 				}
 			} catch (err) {
 				console.error("Error fetching data", err);
@@ -30,6 +33,7 @@ export default function Dashboard() {
 
 		fetchData();
 	}, []);
+
 
 	const openDeleteModal = (id) => {
 		setUserToDelete(id);
