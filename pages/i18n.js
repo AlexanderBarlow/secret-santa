@@ -15,4 +15,13 @@ i18n.use(initReactI18next).init({
 	},
 });
 
-export default i18n;
+const I18nPage = () => {
+  return (
+    <div>
+      <h1>Language Settings</h1>
+      {/* Add your translation components here */}
+    </div>
+  );
+};
+
+export default I18nPage;
