@@ -2,10 +2,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "sqlite" // Change to your preferred database
-  url      = "file:./dev.db"
+datasource postgres {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // This will be set to your PostgreSQL connection URL in production
 }
+
 
 model User {
   id              Int      @id @default(autoincrement())
