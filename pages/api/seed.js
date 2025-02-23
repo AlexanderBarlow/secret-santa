@@ -12,7 +12,8 @@ export default async function handler(req, res) {
 			await prisma.user.create({
 				data: {
 					email: "admin@domain.com",
-					password: "adminpassword",
+                    password: "adminpassword",
+                    isAdmin: true,
 				},
 			});
 			res.status(200).json({ message: "Seeding successful" });
