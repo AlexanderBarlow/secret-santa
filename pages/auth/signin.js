@@ -1,54 +1,54 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode"; // Correct import
+import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../../components/languageswitcher";
 
 export default function SignIn() {
+	const { t } = useTranslation();
+
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
-	const [loading, setLoading] = useState(false); // Add loading state
+	const [loading, setLoading] = useState(false);
 	const router = useRouter();
-	const [isValidToken, setIsValidToken] = useState(null); // New state for token validation
+	const [isValidToken, setIsValidToken] = useState(null);
 
-	// Redirect if a valid token exists in localStorage
 	useEffect(() => {
 		const token = localStorage.getItem("token");
 
-		// Only check token if it exists
 		if (token && isValidToken === null) {
 			try {
 				const decodedToken = jwtDecode(token);
 
-				// Check if token is expired
 				if (decodedToken.exp * 1000 < Date.now()) {
 					localStorage.removeItem("token");
-					setIsValidToken(false); // Token is invalid
+					setIsValidToken(false);
 					return;
 				}
 
-				// Token is valid, check if the page is ready for redirection
 				if (decodedToken.isAdmin) {
-					setIsValidToken(true); // Admin token is valid
+					setIsValidToken(true);
 					router.push("/admin/dashboard");
 				} else {
-					setIsValidToken(true); // User token is valid
+					setIsValidToken(true);
 					router.push("/userdash");
 				}
 			} catch (err) {
 				console.error("Invalid token:", err);
 				localStorage.removeItem("token");
-				setIsValidToken(false); // Invalid token
+				setIsValidToken(false);
 			}
 		} else if (isValidToken === null) {
-			setIsValidToken(false); // No token or valid token is null
+			setIsValidToken(false);
 		}
 	}, [isValidToken]);
 
 	const handleSignIn = async (e) => {
 		e.preventDefault();
-		setLoading(true); // Start loading
+		setLoading(true);
 
 		try {
 			const response = await axios.post(
@@ -59,65 +59,63 @@ export default function SignIn() {
 			if (response.data && response.data.token) {
 				const { token } = response.data;
 
-				// Store token in localStorage
 				localStorage.setItem("token", token);
 				console.log("Token stored:", token);
 
-				// Decode token
 				const decodedToken = jwtDecode(token);
 				console.log("Decoded Token:", decodedToken);
 
-				// Redirect based on role
 				if (decodedToken.isAdmin) {
 					router.push("/admin/dashboard");
 				} else if (!decodedToken.isAdmin) {
 					router.push("/userdash");
-				} 
+				}
 			} else {
-				setError("Invalid email or password.");
+				setError(t("invalid_credentials"));
 			}
 		} catch (err) {
 			if (err.response) {
 				if (err.response.status === 401) {
-					setError("Invalid email or password.");
+					setError(t("invalid_credentials"));
 				} else if (err.response.status === 500) {
-					setError("Server error. Please try again later.");
+					setError(t("server_error"));
 				} else {
-					setError("An unexpected error occurred.");
+					setError(t("unexpected_error"));
 				}
 			} else {
-				setError("Network error. Please check your connection.");
+				setError(t("network_error"));
 			}
 		} finally {
-			setLoading(false); // Stop loading
+			setLoading(false);
 		}
 	};
 
-	// Function to navigate to the create account page
 	const navigateToCreateAccount = () => {
 		router.push("/auth/signup");
 	};
 
 	return (
 		<div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
+			<LanguageSwitcher />
 			<div className="flex justify-center mb-6">
 				<Image src="/logo.png" alt="Chick-fil-A Logo" width={200} height={80} />
 			</div>
-
 			<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-				<h1 className="text-3xl font-semibold text-center mb-6 text-black">Sign In</h1>
+				<h1 className="text-3xl font-semibold text-center mb-6 text-black">
+					{t("sign_in")}
+				</h1>
 				<form onSubmit={handleSignIn} className="space-y-6">
 					<div>
 						<label
 							htmlFor="email"
 							className="block text-sm font-medium text-gray-600"
 						>
-							Full Name
+							{t("full_name")}
 						</label>
 						<input
-							type="test"
+							type="text"
 							id="email"
-							placeholder="Name"
+							placeholder={t("name_placeholder")}
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"
@@ -130,12 +128,12 @@ export default function SignIn() {
 							htmlFor="password"
 							className="block text-sm font-medium text-gray-600"
 						>
-							Password
+							{t("password")}
 						</label>
 						<input
 							type="password"
 							id="password"
-							placeholder="Password"
+							placeholder={t("password_placeholder")}
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"
@@ -147,25 +145,24 @@ export default function SignIn() {
 						<p className="text-red-500 text-sm mt-2 text-center">{error}</p>
 					)}
 
-					{/* Show loading spinner */}
 					{loading && (
-						<p className="text-center text-black">Sign In Page Loading...</p>
+						<p className="text-center text-black">{t("loading_sign_in")}</p>
 					)}
 
 					<button
 						type="submit"
 						className="w-full py-3 mt-4 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600"
 					>
-						Sign In
+						{t("sign_in_button")}
 					</button>
 				</form>
 				<p className="text-center mt-4 text-black">
-					New User?{" "}
+					{t("new_user")}{" "}
 					<span
 						onClick={navigateToCreateAccount}
 						className="text-blue-500 hover:underline cursor-pointer"
 					>
-						Sign Up Here
+						{t("sign_up_here")}
 					</span>
 				</p>
 			</div>

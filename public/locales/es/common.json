@@ -1,0 +1,15 @@
+{
+	"sign_in": "Iniciar sesión",
+	"full_name": "Nombre completo",
+	"password": "Contraseña",
+	"name_placeholder": "Ingresa tu nombre completo",
+	"password_placeholder": "Ingresa tu contraseña",
+	"loading_sign_in": "Iniciando sesión...",
+	"sign_in_button": "Iniciar sesión",
+	"new_user": "¿Nuevo usuario?",
+	"sign_up_here": "Regístrate aquí",
+	"invalid_credentials": "Correo electrónico o contraseña inválidos.",
+	"server_error": "Error del servidor. Intenta de nuevo más tarde.",
+	"unexpected_error": "Ocurrió un error inesperado.",
+	"network_error": "Error de red. Por favor, revisa tu conexión."
+}
