@@ -52,7 +52,7 @@ export default function SignIn() {
 
 		try {
 			const response = await axios.post(
-				"http://localhost:3000/api/auth/signin",
+				"/api/auth/signin",
 				{ email, password }
 			);
 
