@@ -206,7 +206,7 @@ export default function Dashboard() {
 					</div>
 				</div>
 			)}
-
+		
 			<AdminNavbar />
 		</div>
 	);
