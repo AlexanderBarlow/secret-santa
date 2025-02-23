@@ -6,20 +6,17 @@ import { Loader2 } from "lucide-react"; // Loading icon for better UX
 export default function MatchSantaPage() {
 	const [loading, setLoading] = useState(false);
 	const [message, setMessage] = useState("");
-	const [matches, setMatches] = useState([]);
-	const [unpaired, setUnpaired] = useState([]);
 	const [users, setUsers] = useState([]);
+	const [unpaired, setUnpaired] = useState([]);
+	const [selectedReceivers, setSelectedReceivers] = useState({}); // Store selected receivers by user ID
 
+	// Fetch all users and their matching status
 	useEffect(() => {
 		const fetchUsers = async () => {
 			try {
 				const response = await axios.get("/api/admin/users");
 				setUsers(response.data);
-
-				const unpairedUsers = response.data.filter(
-					(user) => !user.matchedSanta && !user.matchedBy
-				);
-				setUnpaired(unpairedUsers);
+				updateUnpairedList(response.data);
 			} catch (error) {
 				console.error("Error fetching users:", error);
 			}
@@ -27,6 +24,13 @@ export default function MatchSantaPage() {
 		fetchUsers();
 	}, []);
 
+	// Update the unpaired list whenever users change
+	const updateUnpairedList = (userList) => {
+		const unpairedUsers = userList.filter((user) => user.matchedBy === null); // Users with no giver
+		setUnpaired(unpairedUsers);
+	};
+
+	// Handle matching users
 	const handleMatchUsers = async () => {
 		setLoading(true);
 		setMessage("");
@@ -36,18 +40,11 @@ export default function MatchSantaPage() {
 			if (response.status === 200) {
 				setMessage("Users have been successfully matched!");
 
+				// Fetch the latest users and update the UI
 				const updatedUsersResponse = await axios.get("/api/admin/users");
 				const updatedUsers = updatedUsersResponse.data;
-
 				setUsers(updatedUsers);
-
-				const pairedUserEmails = updatedUsers
-					.filter((user) => user.matchedSanta || user.matchedBy)
-					.map((user) => user.email);
-
-				setUnpaired(
-					updatedUsers.filter((user) => !pairedUserEmails.includes(user.email))
-				);
+				updateUnpairedList(updatedUsers);
 			} else {
 				setMessage("An error occurred during the matching process.");
 			}
@@ -56,6 +53,81 @@ export default function MatchSantaPage() {
 		} finally {
 			setLoading(false);
 		}
+	};
+
+	// Unmatch users (removes the match)
+	const handleUnmatch = async (giverId, receiverId) => {
+		try {
+			const response = await axios.post("/api/admin/users/unmatch", {
+				giverId,
+				receiverId,
+			});
+			if (response.status === 200) {
+				// Update UI and unpaired list after unmatch
+				const updatedUsers = users.map((user) =>
+					user.id === giverId
+						? { ...user, matchedSanta: null }
+						: user.id === receiverId
+						? { ...user, matchedBy: null }
+						: user
+				);
+				setUsers(updatedUsers);
+				updateUnpairedList(updatedUsers);
+				setMessage("Match has been removed.");
+			} else {
+				setMessage("An error occurred while unmatching.");
+			}
+		} catch (error) {
+			setMessage("An error occurred while unmatching.");
+		}
+	};
+
+	// Assign a receiver to a giver
+	const handleSelectReceiver = async (giverId, receiverId) => {
+		try {
+			const response = await axios.post("/api/admin/users/selectreceiver", {
+				giverId: giverId,
+				receiverId: Number(receiverId),
+			});
+
+			if (response.status === 200) {
+				// Fetch the updated receiver to get the full data
+				const receiver = unpaired.find(
+					(user) => user.id === Number(receiverId)
+				);
+
+				// Update UI after assigning receiver
+				const updatedUsers = users.map((user) =>
+					user.id === giverId
+						? { ...user, matchedSanta: receiver } // Store full receiver data
+						: user
+				);
+
+				// Filter out the assigned receiver from the unpaired list
+				const updatedUnpaired = unpaired.filter(
+					(user) => user.id !== Number(receiverId)
+				);
+				setUsers(updatedUsers);
+				setUnpaired(updatedUnpaired); // Update unpaired list
+				setMessage("Receiver has been assigned.");
+			} else {
+				setMessage("An error occurred while assigning the receiver.");
+			}
+		} catch (error) {
+			if (error.response && error.response.status === 400) {
+				setMessage("Invalid request: Giver and receiver cannot be the same.");
+			} else {
+				setMessage("An unexpected error occurred.");
+			}
+		}
+	};
+
+	// Handle the selection of a receiver for each user
+	const handleReceiverChange = (giverId, receiverId) => {
+		setSelectedReceivers((prevState) => ({
+			...prevState,
+			[giverId]: receiverId,
+		}));
 	};
 
 	return (
@@ -103,6 +175,56 @@ export default function MatchSantaPage() {
 										<span className="font-medium text-gray-900">
 											{user.matchedSanta?.email || "No receiver"}
 										</span>
+										<div className="flex space-x-2">
+											{/* Button to unmatch the pair */}
+											{user.matchedSanta && (
+												<button
+													onClick={() =>
+														handleUnmatch(user.id, user.matchedSanta.id)
+													}
+													className="bg-red-500 text-white px-3 py-1 rounded-lg"
+												>
+													Unmatch
+												</button>
+											)}
+
+											{/* Button to assign a new receiver */}
+											{user.matchedSanta === null && unpaired.length > 0 && (
+												<div className="relative flex items-center gap-2">
+													<select
+														onChange={(e) =>
+															handleReceiverChange(user.id, e.target.value)
+														}
+														value={selectedReceivers[user.id] || ""}
+														className="bg-blue-500 text-white px-3 py-1 rounded-lg flex-1"
+													>
+														<option value={""} disabled>
+															Select Receiver
+														</option>
+														{unpaired.map((unpairedUser) => (
+															<option
+																key={unpairedUser.id}
+																value={unpairedUser.id}
+															>
+																{unpairedUser.email}
+															</option>
+														))}
+													</select>
+													<button
+														onClick={() =>
+															selectedReceivers[user.id] &&
+															handleSelectReceiver(
+																user.id,
+																selectedReceivers[user.id]
+															)
+														}
+														className="bg-green-500 text-white px-3 py-1 rounded-lg"
+													>
+														Assign
+													</button>
+												</div>
+											)}
+										</div>
 									</li>
 								))}
 							</ul>
