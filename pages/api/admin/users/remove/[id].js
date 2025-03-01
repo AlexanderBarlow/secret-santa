@@ -1,4 +1,5 @@
-import prisma from "../../../../lib/prisma";
+import prisma from "../../../../../lib/prisma";
+
 export default async function handler(req, res) {
   const {
     method,
@@ -11,7 +12,23 @@ export default async function handler(req, res) {
 
   try {
     if (method === "DELETE") {
-      // Perform the deletion based on the user's id
+      // Step 1: Delete related WishlistItem entries first
+      await prisma.wishlistItem.deleteMany({
+        where: {
+          wishlist: {
+            userId: parseInt(id), // Delete all wishlist items associated with the user's wishlist
+          },
+        },
+      });
+
+      // Step 2: Delete related Wishlist entries
+      await prisma.wishlist.deleteMany({
+        where: {
+          userId: parseInt(id), // Delete all wishlists associated with the user
+        },
+      });
+
+      // Step 3: Delete the user
       const result = await prisma.user.delete({
         where: {
           id: parseInt(id), // Assuming 'id' is an integer, you can adjust accordingly if it's a different type

@@ -168,7 +168,7 @@ export default function Dashboard() {
 											</button>
 										)}
 										<button
-											onClick={() => openDeleteModal(user.id)}
+											onClick={() => openDeleteModal(user.id) && setUserToDelete(user.id)}
 											className={`p-3 ${
 												user.Accepted ? "w-full" : "w-1/2"
 											} bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition-colors`}
