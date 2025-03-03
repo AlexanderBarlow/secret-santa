@@ -6,6 +6,7 @@ import {
 	faPlus,
 	faGift,
 	faSignOutAlt,
+	faChartSimple
 } from "@fortawesome/free-solid-svg-icons";
 import { parseCookies, destroyCookie } from "nookies"; // Import nookies to manage cookies
 
@@ -14,22 +15,27 @@ export default function AdminNavbar() {
 
 	// Define the navigation items
 	const navItems = [
-		{
-			href: "/admin/dashboard",
-			icon: faUsers,
-			label: "Users",
-		},
-		{
-			href: "/admin/adduser",
-			icon: faPlus,
-			label: "Event Details",
-		},
-		{
-			href: "/admin/matchsanta",
-			icon: faGift,
-			label: "Match Santa",
-		},
-	];
+    {
+      href: "/admin/dashboard",
+      icon: faUsers,
+      label: "Users",
+    },
+    {
+      href: "/admin/adduser",
+      icon: faPlus,
+      label: "Event Details",
+    },
+    {
+      href: "/admin/matchsanta",
+      icon: faGift,
+      label: "Match Santa",
+    },
+    {
+      href: "/admin/analytics",
+      icon: faChartSimple,
+      label: "Analytics",
+    },
+  ];
 
 	// Handle logout
 	const handleLogout = async () => {

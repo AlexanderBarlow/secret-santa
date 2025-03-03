@@ -14,6 +14,7 @@ import {
   Paper,
 } from "@mui/material";
 import axios from "axios";
+import AdminNavbar from "../../components/AdminNavbar";
 
 export default function AdminAnalytics() {
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -24,7 +25,7 @@ export default function AdminAnalytics() {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = axios.get("/api/analytics");
+        const response = await axios.get("/api/analytics");
         if (!response.ok) {
           throw new Error("Failed to fetch data");
         }
@@ -158,6 +159,7 @@ export default function AdminAnalytics() {
           </TableBody>
         </Table>
       </TableContainer>
+      <AdminNavbar />
     </Box>
   );
 }
