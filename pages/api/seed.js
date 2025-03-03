@@ -13,26 +13,26 @@ export default async function handler(req, res) {
       throw new Error("Prisma client is not initialized");
     }
 
-    // Check if the admin user exists
+    // Check if any admin user exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: "admin@domain.com" },
+      where: { email: "CFA02348@gmail.com" || "admin@domain.com"},
     });
 
     if (!existingUser) {
       console.log("Creating admin user...");
       await prisma.user.create({
         data: {
-          email: "admin@domain.com",
-          password: "adminpassword", // ❌ Plaintext password (not recommended)
+          email: "CFA02348@gmail.com",
+          password: "CFAchicken", // ❌ Plaintext password (consider hashing)
           isAdmin: true,
         },
       });
     } else {
       console.log("Updating admin user...");
       await prisma.user.update({
-        where: { email: "admin@domain.com" },
+        where: { email: "CFA02348@gmail.com" },
         data: {
-          password: "adminpassword",
+          password: "CFAchicken",
           isAdmin: true,
         },
       });

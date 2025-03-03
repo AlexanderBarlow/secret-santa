@@ -4,7 +4,8 @@ generator client {
 
 datasource postgres {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // This will be set to your PostgreSQL connection URL in production
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 
