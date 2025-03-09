@@ -5,6 +5,7 @@ import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/languageswitcher";
+import DownloadBtn from '../../components/DownloadBtn';
 
 export default function SignIn() {
 	const { t } = useTranslation();
@@ -96,6 +97,7 @@ export default function SignIn() {
 
 	return (
 		<div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
+			<DownloadBtn />
 			<LanguageSwitcher />
 			<div className="flex justify-center mb-6">
 				<Image src="/logo.png" alt="Chick-fil-A Logo" width={200} height={80} />
