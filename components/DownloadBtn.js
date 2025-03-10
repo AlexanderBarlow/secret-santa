@@ -58,7 +58,7 @@ const handleInstall = () => {
 
   return (
     <button
-      className="fixed top-4 left-4 z-50 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-lg transition-transform transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-300"
+      className="absolute top-4 left-4 z-50 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-lg transition-transform transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-300"
       onClick={handleInstall}
       disabled={!installPrompt}
     >

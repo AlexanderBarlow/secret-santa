@@ -11,7 +11,7 @@ export default function LanguageSwitcher() {
 	};
 
 	return (
-    <div className="fixed top-5 right-5">
+    <div className="absolute top-5 right-5">
       <span className="mr-2 text-sm text-gray-600">English</span>
       <div className="relative inline-block w-16 mr-4 align-middle select-none transition duration-200 ease-in">
         <input
