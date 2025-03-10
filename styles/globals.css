@@ -16,40 +16,42 @@
   }
 }
 
-body {
+/* ✅ Ensures full height on iPhone & Android */
+html, body {
+  height: 100dvh; /* Dynamic viewport height */
+  min-height: -webkit-fill-available; /* Older iOS support */
+  overflow-x: hidden;
+  background: azure;
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-    height: 100%;
-    overflow-x: hidden;
-    background-color: azure;
-}
-/* For the toggle switch animation */
-.toggle-checkbox:checked {
-	transform: translateX(100%);
-	background-color: #34d399; /* Green color for the checked state */
 }
 
-.toggle-checkbox {
-	transition: 0.3s ease-in-out;
-}
-
-.toggle-label {
-	transition: 0.3s ease-in-out;
-}
-
-/* Optional: Adjust colors */
-.toggle-checkbox:checked + .toggle-label {
-	background-color: #34d399; /* Green color when active */
-}
-
+/* ✅ Ensures Next.js root container is full height */
 #__next {
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* Ensures full viewport height */
+  min-height: 100dvh; /* Use dynamic viewport height */
   background-color: azure;
+}
+
+/* ✅ Fix bottom navbar overlap on iPhones */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ✅ Fix for toggle animation */
+.toggle-checkbox:checked {
+  transform: translateX(100%);
+  background-color: #34d399; /* Green when active */
+}
+
+.toggle-checkbox {
+  transition: 0.3s ease-in-out;
+}
+
+.toggle-label {
+  transition: 0.3s ease-in-out;
+}
+
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #34d399;
 }
