@@ -1,0 +1,82 @@
+export default function ({ user, handleAcceptUser, openDeleteModal }) {
+	return (
+		<div className="bg-white p-6 rounded-xl shadow-md border border-gray-300 hover:shadow-xl transition-shadow flex flex-col justify-between min-h-[300px]">
+			{/* Profile Picture (Circular, Centered) */}
+			<div className="flex justify-center mb-3">
+				<img
+					src={user.profilePicture || "/default-profile.png"} // ✅ Fallback image if missing
+					alt="Profile"
+					className="w-16 h-16 rounded-full border-2 border-gray-300 shadow-md object-cover"
+				/>
+			</div>
+
+			{/* Email */}
+			<h3 className="text-lg font-semibold text-black mb-3 truncate text-center">
+				{user.email}
+			</h3>
+
+			{/* Role Badge (Color-Coded) */}
+			<p
+				className={`text-sm font-semibold p-2 rounded text-center ${
+					user.role === "FRONT_OF_HOUSE"
+						? "bg-red-200 text-red-800"
+						: "bg-blue-200 text-blue-800"
+				}`}
+			>
+				{user.role === "FRONT_OF_HOUSE" ? "Front of House" : "Back of House"}
+			</p>
+
+			{/* Matched Santa */}
+			<h4 className="text-sm text-gray-600 font-semibold mt-2">
+				Matched Santa:
+			</h4>
+			<p className="text-black text-sm">{user.matchedSanta?.email || "N/A"}</p>
+
+			{/* Wishlist */}
+			<h4 className="text-sm text-gray-600 font-semibold mt-2">Wishlist:</h4>
+			<ul className="list-disc pl-5 text-black text-sm">
+				{user.wishlist?.items?.length > 0 ? (
+					user.wishlist.items.map((item, index) => (
+						<li key={index}>{item.item}</li>
+					))
+				) : (
+					<li>No items in wishlist.</li>
+				)}
+			</ul>
+
+			{/* Accepted Status */}
+			<h4 className="text-sm text-gray-600 font-semibold mt-2">
+				Accepted Status:
+			</h4>
+			<p
+				className={`text-sm font-semibold p-2 rounded mt-1 text-center ${
+					user.Accepted
+						? "bg-green-200 text-green-800"
+						: "bg-yellow-200 text-yellow-800"
+				}`}
+			>
+				{user.Accepted ? "Accepted" : "Pending"}
+			</p>
+
+			{/* Action Buttons */}
+			<div className="flex gap-2 mt-4">
+				{!user.Accepted && (
+					<button
+						onClick={() => handleAcceptUser(user.id)}
+						className="p-3 w-1/2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition-colors"
+					>
+						Accept
+					</button>
+				)}
+				<button
+					onClick={() => openDeleteModal(user.id)}
+					className={`p-3 ${
+						user.Accepted ? "w-full" : "w-1/2"
+					} bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition-colors`}
+				>
+					Remove
+				</button>
+			</div>
+		</div>
+	);
+}

@@ -10,33 +10,37 @@ import Head from "next/head";
 const publicPages = ["/auth/signin", "/auth/signup"];
 
 function App({ Component, pageProps }) {
-  const router = useRouter();
-  const isPublicPage = publicPages.includes(router.pathname);
+	const router = useRouter();
+	const isPublicPage = publicPages.includes(router.pathname);
 
-  return (
-    <>
-      <Head>
-        {/* PWA Manifest */}
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#000000" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="My PWA App" />
-      </Head>
+	return (
+		<>
+			<Head>
+				<meta
+					name="viewport"
+					content="width=device-width, initial-scale=1, viewport-fit=cover"
+				/>
+				{/* PWA Manifest */}
+				<link rel="manifest" href="/manifest.json" />
+				<meta name="theme-color" content="#000000" />
+				<link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+				<meta name="mobile-web-app-capable" content="yes" />
+				<meta name="apple-mobile-web-app-capable" content="yes" />
+				<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+				<meta name="apple-mobile-web-app-title" content="My PWA App" />
+			</Head>
 
-      <AuthProvider>
-        {isPublicPage ? (
-          <Component {...pageProps} />
-        ) : (
-          <ProtectedRoute>
-            <Component {...pageProps} />
-          </ProtectedRoute>
-        )}
-      </AuthProvider>
-    </>
-  );
+			<AuthProvider>
+				{isPublicPage ? (
+					<Component {...pageProps} />
+				) : (
+					<ProtectedRoute>
+						<Component {...pageProps} />
+					</ProtectedRoute>
+				)}
+			</AuthProvider>
+		</>
+	);
 }
 
 export default appWithTranslation(App);
