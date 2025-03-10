@@ -4,16 +4,9 @@ import prisma from "../../../lib/prisma";
 
 // List of goofy Christmas-themed profile pictures (NO PEOPLE)
 const christmasProfileImages = [
-	"https://i.imgur.com/tlVzMCI.png", // 🎄 Christmas tree with funny face
-	"https://i.imgur.com/KsbTydP.png", // 🦌 Goofy reindeer with huge nose
-	"https://i.imgur.com/DgH2mLP.png", // 🎅 Santa hat on a snowman with big eyes
-	"https://i.imgur.com/7YUpMCC.png", // 🦌 Reindeer wearing Christmas lights
-	"https://i.imgur.com/ZT65hDd.png", // 🎁 Funny Christmas gift box with eyes
-	"https://i.imgur.com/3eHQQyH.png", // ❄️ Snowflake with a mustache
-	"https://i.imgur.com/qvI3SeT.png", // 🧦 Goofy Christmas stocking with candy canes
-	"https://i.imgur.com/COj0Sm5.png", // 🔔 Silly jingle bell with a smile
-	"https://i.imgur.com/nQoM41O.png", // 🎄 Goofy pine tree wearing a Santa hat
-	"https://i.imgur.com/Wpe9F4Y.png", // 🍪 Funny Christmas cookie with sunglasses
+  "cow1.jpg", // 🎄 Christmas tree with funny face
+  "cow2.jpg", // 🦌 Goofy reindeer with huge nose
+  "cow3.jpg", // 🎅 Santa hat on a snowman with big eyes // 🍪
 ];
 
 export default async function handler(req, res) {
