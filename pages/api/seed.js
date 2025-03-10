@@ -25,6 +25,7 @@ export default async function handler(req, res) {
           email: "CFA02348@gmail.com",
           password: "CFAchicken", // ❌ Plaintext password (consider hashing)
           isAdmin: true,
+          profilePicture: "https://example.com/admin-profile-picture.jpg", // ✅ Valid URL
         },
       });
     } else {

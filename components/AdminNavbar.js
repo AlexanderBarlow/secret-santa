@@ -6,50 +6,44 @@ import {
 	faPlus,
 	faGift,
 	faSignOutAlt,
-	faChartSimple
+	faChartSimple,
 } from "@fortawesome/free-solid-svg-icons";
-import { parseCookies, destroyCookie } from "nookies"; // Import nookies to manage cookies
 
 export default function AdminNavbar() {
 	const router = useRouter();
 
 	// Define the navigation items
 	const navItems = [
-    {
-      href: "/admin/dashboard",
-      icon: faUsers,
-      label: "Users",
-    },
-    {
-      href: "/admin/adduser",
-      icon: faPlus,
-      label: "Event Details",
-    },
-    {
-      href: "/admin/matchsanta",
-      icon: faGift,
-      label: "Match Santa",
-    },
-    {
-      href: "/admin/analytics",
-      icon: faChartSimple,
-      label: "Analytics",
-    },
-  ];
+		{
+			href: "/admin/dashboard",
+			icon: faUsers,
+			label: "Users",
+		},
+		{
+			href: "/admin/adduser",
+			icon: faPlus,
+			label: "Event Details",
+		},
+		{
+			href: "/admin/matchsanta",
+			icon: faGift,
+			label: "Match Santa",
+		},
+		{
+			href: "/admin/analytics",
+			icon: faChartSimple,
+			label: "Analytics",
+		},
+	];
 
 	// Handle logout
 	const handleLogout = async () => {
-		console.log("function");
 		try {
-			// Send a POST request to the logout API to clear the JWT cookie
 			const response = await fetch("/api/auth/logout", {
-				method: "POST", // POST method for logout
+				method: "POST",
 			});
 
-			console.log(response);
-
 			if (response.ok) {
-				// Redirect user to the sign-in page after successful logout
 				localStorage.removeItem("token");
 				router.push("/auth/signin");
 			} else {
@@ -61,29 +55,31 @@ export default function AdminNavbar() {
 	};
 
 	return (
-		<nav className="fixed bottom-4 left-0 right-0 mx-auto bg-white border-t shadow-lg rounded-full p-4 max-w-md w-full">
+		<nav className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-full p-4">
 			<div className="flex justify-around items-center">
-				{/* Render the navigation items */}
+				{/* Render navigation items */}
 				{navItems.map((item) => (
 					<Link href={item.href} key={item.href}>
 						<div
-							className={`flex flex-col items-center ${
-								router.pathname === item.href ? "text-blue-500" : "text-black"
+							className={`flex flex-col items-center transition-all duration-300 ${
+								router.pathname === item.href
+									? "text-red-500 scale-110"
+									: "text-gray-700 hover:text-red-500 hover:scale-105"
 							}`}
 						>
 							<FontAwesomeIcon icon={item.icon} size="lg" />
-							<span className="text-sm">{item.label}</span>
+							<span className="text-xs font-medium">{item.label}</span>
 						</div>
 					</Link>
 				))}
 
 				{/* Logout button */}
 				<div
-					className="flex flex-col items-center cursor-pointer text-black"
+					className="flex flex-col items-center cursor-pointer text-gray-700 hover:text-red-500 hover:scale-105 transition-all duration-300"
 					onClick={handleLogout}
 				>
 					<FontAwesomeIcon icon={faSignOutAlt} size="lg" />
-					<span className="text-sm">Logout</span>
+					<span className="text-xs font-medium">Logout</span>
 				</div>
 			</div>
 		</nav>

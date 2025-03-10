@@ -165,6 +165,8 @@ export default function UserDashboard() {
             </div>
           )}
 
+          
+
           {loading ? (
             <div className="text-center text-gray-600 text-lg">
               {t("loading")}
@@ -172,10 +174,17 @@ export default function UserDashboard() {
           ) : (
             <>
               {user && (
-                <div className="mb-6 text-center">
+                  <div className="mb-6 text-center">
+                    <div className="flex flex-col items-center">
+                    <img
+                      src={user.profilePicture || "/default-profile.png"} // Fallback if no profile picture
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full border-4 border-gray-300 shadow-lg object-cover"
+                    />
                   <h2 className="text-3xl font-semibold text-gray-800">
                     {t("welcome")}, {user.email}! 🎄
                   </h2>
+                </div>
                 </div>
               )}
 
@@ -209,7 +218,7 @@ export default function UserDashboard() {
                       type="submit"
                       className="w-full py-2 mt-4 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {t("Update Wishlist")}
+                      {t("Save Wishlist")}
                     </button>
                   </form>
 
