@@ -96,10 +96,10 @@ export default function SignIn() {
 	};
 
 	return (
-		<div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
+		<div className="flex flex-col justify-center items-center h-[100dvh] bg-gray-100">
 			<DownloadBtn />
 			<LanguageSwitcher />
-			<div className="flex justify-center mb-6">
+			<div className="flex justify-center mb-3">
 				<Image src="/logo.png" alt="Chick-fil-A Logo" width={200} height={80} />
 			</div>
 			<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">

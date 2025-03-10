@@ -1,4 +1,4 @@
-export default function UserCard({ user, handleAcceptUser, openDeleteModal }) {
+export default function ({ user, handleAcceptUser, openDeleteModal }) {
 	return (
 		<div className="bg-white p-6 rounded-xl shadow-md border border-gray-300 hover:shadow-xl transition-shadow flex flex-col justify-between min-h-[300px]">
 			{/* Profile Picture (Circular, Centered) */}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
-import UserCard from "../../components/UserCard";
+import  from "../../components/";
 import SkeletonCard from "../../components/SkeletonCard";
 
 export default function Dashboard() {
@@ -138,7 +138,7 @@ export default function Dashboard() {
           {loading
             ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />)
             : filteredUsers.map((user) => (
-                <UserCard
+                <
                   key={user.id}
                   user={user}
                   handleAcceptUser={handleAcceptUser}
