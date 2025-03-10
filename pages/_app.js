@@ -30,17 +30,20 @@ function App({ Component, pageProps }) {
 				<meta name="apple-mobile-web-app-title" content="My PWA App" />
 			</Head>
 
-			<AuthProvider>
-				{isPublicPage ? (
-					<Component {...pageProps} />
-				) : (
-					<ProtectedRoute>
+			<div className="flex flex-col min-h-[100dvh] min-h-screen w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-white">
+				<AuthProvider>
+					{isPublicPage ? (
 						<Component {...pageProps} />
-					</ProtectedRoute>
-				)}
-			</AuthProvider>
+					) : (
+						<ProtectedRoute>
+							<Component {...pageProps} />
+						</ProtectedRoute>
+					)}
+				</AuthProvider>
+			</div>
 		</>
 	);
+
 }
 
 export default appWithTranslation(App);

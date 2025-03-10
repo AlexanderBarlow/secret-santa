@@ -18,12 +18,12 @@
 
 /* ✅ Ensures full height on iPhone & Android */
 html, body {
-  height: 100dvh; /* Dynamic viewport height */
-  min-height: -webkit-fill-available; /* Older iOS support */
+  height: 100%; /* ✅ Allows dynamic resizing */
+  min-height: 100vh;
+  min-height: -webkit-fill-available; /* ✅ Fixes iOS height issue */
   overflow-x: hidden;
   background: azure;
   color: rgb(var(--foreground-rgb));
-  
 }
 
 body {
@@ -35,9 +35,11 @@ body {
 #__next {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh; /* Use dynamic viewport height */
+  min-height: 100dvh; /* ✅ Ensures dynamic full height */
+  height: -webkit-fill-available; /* ✅ Fixes iOS cutoff */
   background-color: azure;
 }
+
 
 /* ✅ Fix bottom navbar overlap on iPhones */
 .safe-bottom {
