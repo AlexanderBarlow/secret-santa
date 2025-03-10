@@ -96,7 +96,7 @@ export default function SignIn() {
 	};
 
 	return (
-		<div className="flex flex-col justify-center items-center h-[100dvh] bg-gray-100">
+		<div className="flex flex-col justify-center items-center h-[100dvh] bg-gray-100 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
 			<DownloadBtn />
 			<LanguageSwitcher />
 			<div className="flex justify-center mb-3">

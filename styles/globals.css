@@ -23,6 +23,12 @@ html, body {
   overflow-x: hidden;
   background: azure;
   color: rgb(var(--foreground-rgb));
+  
+}
+
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ✅ Ensures Next.js root container is full height */
