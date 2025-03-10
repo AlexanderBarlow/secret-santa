@@ -28,6 +28,14 @@ model User {
   matchedBy       User?    @relation("UserSanta")
 
   Accepted        Boolean  @default(false)
+
+  role            Role     @default(FRONT_OF_HOUSE)
+  profilePicture  String
+}
+
+enum Role {
+  FRONT_OF_HOUSE
+  BACK_OF_HOUSE
 }
 
 model Wishlist {

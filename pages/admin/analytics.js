@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Card,
-  CircularProgress,
+  LinearProgress,
   Grid,
   Typography,
   Table,
@@ -15,14 +15,13 @@ import {
   Skeleton,
 } from "@mui/material";
 import axios from "axios";
-import { getUsers } from "../../lib/auth";
 import AdminNavbar from "../../components/AdminNavbar";
 
 export default function AdminAnalytics() {
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userData, setUserData] = useState([]);
 
   useEffect(() => {
     const fetchAnalyticsData = async () => {
@@ -62,29 +61,23 @@ export default function AdminAnalytics() {
     getUsers();
   }, []);
 
-  if (loading) {
+  // Show only the skeleton while loading
+  if (loading || !analyticsData || userData.length === 0) {
     return (
       <Box sx={{ p: 4, backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
         <Grid container spacing={6} justifyContent="center">
           {[...Array(3)].map((_, index) => (
-            <Grid item key={index}>
+            <Grid item key={index} xs={12} sm={6} md={4}>
               <Card
                 sx={{
-                  width: 200,
-                  height: 250,
                   p: 3,
                   borderRadius: 3,
                   boxShadow: 3,
+                  backgroundColor: "white",
                 }}
               >
-                <Skeleton variant="circular" width={140} height={140} />
-                <Skeleton
-                  variant="text"
-                  height={30}
-                  width="60%"
-                  sx={{ mt: 2 }}
-                />
-                <Skeleton variant="text" height={20} width="80%" />
+                <Skeleton variant="text" height={30} width="60%" />
+                <Skeleton variant="rectangular" height={20} width="100%" />
               </Card>
             </Grid>
           ))}
@@ -100,69 +93,88 @@ export default function AdminAnalytics() {
 
   if (error) return <div>Error: {error}</div>;
 
-  if (!analyticsData || !analyticsData.totalUsers) {
-    return <div>No data available</div>;
-  }
+  // Calculate percentages for comparisons
+  const acceptedUsers = analyticsData.acceptedUsers || 0;
+  const unacceptedUsers = analyticsData.totalUsers - acceptedUsers;
+  const bohUsers = analyticsData.bohUsers || 0;
+  const fohUsers = analyticsData.fohUsers || 0;
+  const totalUsers = analyticsData.totalUsers || 1;
+
+  const acceptedPercentage = ((acceptedUsers / totalUsers) * 100).toFixed(2);
+  const bohPercentage = ((bohUsers / totalUsers) * 100).toFixed(2);
+  const fohPercentage = ((fohUsers / totalUsers) * 100).toFixed(2);
 
   return (
     <Box sx={{ p: 4, backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
       <Typography
         variant="h4"
-        sx={{ mb: 4, textAlign: "center", fontWeight: "bold", color: "black" }}
+        sx={{
+          mb: 4,
+          textAlign: "center",
+          fontWeight: "bold",
+          color: "#333",
+        }}
       >
-        Admin Analytics
+        📊 Admin Analytics Dashboard
       </Typography>
 
-      <Grid container spacing={6} justifyContent="center">
+      {/* Progress Bars Section */}
+      <Grid container spacing={4} justifyContent="center">
         {[
           {
-            label: "Accepted Users",
-            value: analyticsData.acceptedUsers || 0,
-            color: "#ff9800",
+            label: "Accepted vs Unaccepted",
+            value: acceptedPercentage,
+            color: "#4CAF50",
           },
           {
-            label: "Users with Wishlists",
-            value: analyticsData.usersWithWishlists || 0,
-            color: "#2196f3",
+            label: "Back of House vs Total",
+            value: bohPercentage,
+            color: "#2196F3",
           },
           {
-            label: "Users Matched",
-            value: analyticsData.usersWithSantas || 0,
-            color: "#f44336",
+            label: "Front of House vs Total",
+            value: fohPercentage,
+            color: "#F44336",
           },
         ].map((stat, index) => (
-          <Grid item key={index}>
+          <Grid item key={index} xs={12} sm={6} md={4}>
             <Card
               sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 200,
-                height: 250,
                 p: 3,
                 borderRadius: 3,
                 boxShadow: 3,
+                backgroundColor: "white",
               }}
             >
-              <CircularProgress
-                variant="determinate"
-                value={(stat.value / analyticsData.totalUsers) * 100}
-                size={140}
-                thickness={6}
-                sx={{ color: stat.color }}
-              />
-              <Typography variant="h6" sx={{ mt: 2, fontWeight: "bold" }}>
-                {((stat.value / analyticsData.totalUsers) * 100).toFixed(2)}%
-              </Typography>
-              <Typography variant="body2" sx={{ color: "gray" }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", color: "#333" }}
+              >
                 {stat.label}
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={stat.value}
+                sx={{
+                  height: 10,
+                  mt: 2,
+                  borderRadius: 5,
+                  backgroundColor: "#ddd",
+                  "& .MuiLinearProgress-bar": { backgroundColor: stat.color },
+                }}
+              />
+              <Typography
+                variant="body1"
+                sx={{ mt: 1, fontWeight: "bold", textAlign: "right" }}
+              >
+                {stat.value}%
               </Typography>
             </Card>
           </Grid>
         ))}
       </Grid>
 
+      {/* User Table */}
       <TableContainer
         component={Paper}
         sx={{ mt: 6, borderRadius: 3, boxShadow: 3 }}
@@ -180,26 +192,38 @@ export default function AdminAnalytics() {
                 Date Created
               </TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                Password
+                Role
+              </TableCell>
+              <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                Accepted
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {userData.map((user, index) => (
-              <TableRow key={index}>
+              <TableRow
+                key={index}
+                sx={{ backgroundColor: index % 2 ? "#f9f9f9" : "white" }}
+              >
                 <TableCell>{user.id}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   {new Date(user.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  {user.password}
+                  {user.role === "FRONT_OF_HOUSE"
+                    ? "Front of House"
+                    : user.role === "BACK_OF_HOUSE"
+                    ? "Back of House"
+                    : "Unassigned"}
                 </TableCell>
+                <TableCell>{user.Accepted ? "✔️ Yes" : "❌ No"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
       <AdminNavbar />
     </Box>
   );

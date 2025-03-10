@@ -8,9 +8,35 @@ export default function MatchSantaPage() {
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState([]);
   const [unpaired, setUnpaired] = useState([]);
-  const [selectedReceivers, setSelectedReceivers] = useState({}); // Store selected receivers by user ID
+  const [selectedReceivers, setSelectedReceivers] = useState({});
+  const [eventDate, setEventDate] = useState(null);
+  const [isEventLocked, setIsEventLocked] = useState(false); // Lock state
 
-  // Fetch all users and their matching status
+  useEffect(() => {
+    const fetchAdminDetails = async () => {
+      try {
+        const response = await axios.get("/api/admin/users/adduser");
+        const fetchedEventDate = response.data.eventDate;
+
+        if (fetchedEventDate) {
+          const eventDateObj = new Date(fetchedEventDate);
+          setEventDate(eventDateObj);
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          setIsEventLocked(eventDateObj > today);
+        }
+      } catch (err) {
+        console.error(
+          err.response?.data?.error || "Failed to fetch admin details."
+        );
+      }
+    };
+
+    fetchAdminDetails();
+  }, []);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -24,13 +50,11 @@ export default function MatchSantaPage() {
     fetchUsers();
   }, []);
 
-  // Update the unpaired list whenever users change
   const updateUnpairedList = (userList) => {
-    const unpairedUsers = userList.filter((user) => user.matchedBy === null); // Users with no giver
+    const unpairedUsers = userList.filter((user) => user.matchedBy === null);
     setUnpaired(unpairedUsers);
   };
 
-  // Handle matching users
   const handleMatchUsers = async () => {
     setLoading(true);
     setMessage("");
@@ -40,11 +64,9 @@ export default function MatchSantaPage() {
       if (response.status === 200) {
         setMessage("Users have been successfully matched!");
 
-        // Fetch the latest users and update the UI
         const updatedUsersResponse = await axios.get("/api/admin/users");
-        const updatedUsers = updatedUsersResponse.data;
-        setUsers(updatedUsers);
-        updateUnpairedList(updatedUsers);
+        setUsers(updatedUsersResponse.data);
+        updateUnpairedList(updatedUsersResponse.data);
       } else {
         setMessage("An error occurred during the matching process.");
       }
@@ -55,35 +77,9 @@ export default function MatchSantaPage() {
     }
   };
 
-  // Unmatch users (removes the match)
-  const handleUnmatch = async (giverId, receiverId) => {
-    try {
-      const response = await axios.post("/api/admin/users/unmatch", {
-        giverId,
-        receiverId,
-      });
-      if (response.status === 200) {
-        // Update UI and unpaired list after unmatch
-        const updatedUsers = users.map((user) =>
-          user.id === giverId
-            ? { ...user, matchedSanta: null }
-            : user.id === receiverId
-            ? { ...user, matchedBy: null }
-            : user
-        );
-        setUsers(updatedUsers);
-        updateUnpairedList(updatedUsers);
-        setMessage("Match has been removed.");
-      } else {
-        setMessage("An error occurred while unmatching.");
-      }
-    } catch (error) {
-      setMessage("An error occurred while unmatching.");
-    }
-  };
-
-  // Assign a receiver to a giver
   const handleSelectReceiver = async (giverId, receiverId) => {
+    if (isEventLocked) return; // Prevent assignment if locked
+
     try {
       const response = await axios.post("/api/admin/users/selectreceiver", {
         giverId: giverId,
@@ -91,24 +87,19 @@ export default function MatchSantaPage() {
       });
 
       if (response.status === 200) {
-        // Fetch the updated receiver to get the full data
         const receiver = unpaired.find(
           (user) => user.id === Number(receiverId)
         );
 
-        // Update UI after assigning receiver
         const updatedUsers = users.map((user) =>
-          user.id === giverId
-            ? { ...user, matchedSanta: receiver } // Store full receiver data
-            : user
+          user.id === giverId ? { ...user, matchedSanta: receiver } : user
         );
 
-        // Filter out the assigned receiver from the unpaired list
         const updatedUnpaired = unpaired.filter(
           (user) => user.id !== Number(receiverId)
         );
         setUsers(updatedUsers);
-        setUnpaired(updatedUnpaired); // Update unpaired list
+        setUnpaired(updatedUnpaired);
         setMessage("Receiver has been assigned.");
       } else {
         setMessage("An error occurred while assigning the receiver.");
@@ -122,7 +113,6 @@ export default function MatchSantaPage() {
     }
   };
 
-  // Handle the selection of a receiver for each user
   const handleReceiverChange = (giverId, receiverId) => {
     setSelectedReceivers((prevState) => ({
       ...prevState,
@@ -131,9 +121,9 @@ export default function MatchSantaPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-100">
       <div className="flex flex-grow justify-center items-center p-6">
-        <div className="w-full max-w-2xl bg-white p-8 rounded-xl shadow-lg">
+        <div className="w-full max-w-3xl bg-white p-8 rounded-xl shadow-lg">
           <h1 className="text-3xl font-bold text-red-600 text-center mb-6">
             Match Santa 🎅
           </h1>
@@ -146,8 +136,12 @@ export default function MatchSantaPage() {
 
           <button
             onClick={handleMatchUsers}
-            disabled={loading}
-            className="w-full flex justify-center items-center gap-2 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-400"
+            disabled={loading || isEventLocked}
+            className={`w-full flex justify-center items-center gap-2 py-3 font-semibold rounded-lg shadow-md transition focus:outline-none focus:ring-2 ${
+              isEventLocked
+                ? "bg-gray-400 cursor-not-allowed text-gray-700"
+                : "bg-red-500 text-white hover:bg-red-600 focus:ring-red-400"
+            }`}
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
@@ -155,6 +149,13 @@ export default function MatchSantaPage() {
               "Generate Matches"
             )}
           </button>
+
+          {isEventLocked && (
+            <p className="text-center text-red-500 font-medium mt-2">
+              Matches cannot be generated before the event date (
+              {eventDate ? eventDate.toDateString() : "loading..."}).
+            </p>
+          )}
 
           <div className="mt-8">
             <h2 className="text-2xl font-semibold text-gray-800 text-center">
@@ -166,7 +167,7 @@ export default function MatchSantaPage() {
                 {users.map((user, index) => (
                   <li
                     key={index}
-                    className="bg-gray-100 p-4 rounded-lg shadow-md flex justify-between items-center"
+                    className="bg-gray-100 p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-center gap-4"
                   >
                     <span className="font-medium text-gray-900">
                       {user.email || "No giver"}
@@ -175,56 +176,48 @@ export default function MatchSantaPage() {
                     <span className="font-medium text-gray-900">
                       {user.matchedSanta?.email || "No receiver"}
                     </span>
-                    <div className="flex space-x-2">
-                      {/* Button to unmatch the pair */}
-                      {user.matchedSanta && (
+
+                    {user.matchedSanta === null && unpaired.length > 0 && (
+                      <div className="relative flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <select
+                          onChange={(e) =>
+                            handleReceiverChange(user.id, e.target.value)
+                          }
+                          value={selectedReceivers[user.id] || ""}
+                          className="bg-white text-black px-3 py-2 border border-gray-400 rounded-lg w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={isEventLocked}
+                        >
+                          <option value={""} disabled>
+                            Select Receiver
+                          </option>
+                          {unpaired.map((unpairedUser) => (
+                            <option
+                              key={unpairedUser.id}
+                              value={unpairedUser.id}
+                            >
+                              {unpairedUser.email}
+                            </option>
+                          ))}
+                        </select>
                         <button
                           onClick={() =>
-                            handleUnmatch(user.id, user.matchedSanta.id)
+                            selectedReceivers[user.id] &&
+                            handleSelectReceiver(
+                              user.id,
+                              selectedReceivers[user.id]
+                            )
                           }
-                          className="bg-red-500 text-white px-3 py-1 rounded-lg"
+                          className={`px-4 py-2 rounded-lg shadow-md transition w-full sm:w-auto ${
+                            isEventLocked
+                              ? "bg-gray-400 cursor-not-allowed text-gray-700"
+                              : "bg-green-500 text-white hover:bg-green-600"
+                          }`}
+                          disabled={isEventLocked}
                         >
-                          Unmatch
+                          Assign
                         </button>
-                      )}
-
-                      {/* Button to assign a new receiver */}
-                      {user.matchedSanta === null && unpaired.length > 0 && (
-                        <div className="relative flex flex-col gap-2 w-full">
-                          <select
-                            onChange={(e) =>
-                              handleReceiverChange(user.id, e.target.value)
-                            }
-                            value={selectedReceivers[user.id] || ""}
-                            className="bg-blue-500 text-white px-3 py-1 rounded-lg w-full"
-                          >
-                            <option value={""} disabled>
-                              Select Receiver
-                            </option>
-                            {unpaired.map((unpairedUser) => (
-                              <option
-                                key={unpairedUser.id}
-                                value={unpairedUser.id}
-                              >
-                                {unpairedUser.email}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={() =>
-                              selectedReceivers[user.id] &&
-                              handleSelectReceiver(
-                                user.id,
-                                selectedReceivers[user.id]
-                              )
-                            }
-                            className="bg-green-500 text-white px-3 py-1 rounded-lg w-full"
-                          >
-                            Assign
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -233,25 +226,6 @@ export default function MatchSantaPage() {
                 Start matching now to generate Santa pairs!
               </p>
             )}
-
-            <div className="mt-6">
-              <h2 className="text-xl font-semibold text-center text-black">
-                Unpaired Users ❌
-              </h2>
-              {unpaired.length > 0 ? (
-                <ul className="mt-4 list-disc pl-6">
-                  {unpaired.map((user, index) => (
-                    <li key={index} className="text-gray-900">
-                      {user.email}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-4 text-center text-gray-500">
-                  All users are paired. 🎉
-                </p>
-              )}
-            </div>
           </div>
         </div>
       </div>
