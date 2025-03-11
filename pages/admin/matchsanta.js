@@ -121,7 +121,7 @@ export default function MatchSantaPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-gray-100 pb-20">
       <div className="flex flex-grow justify-center items-center p-6">
         <div className="w-full max-w-3xl bg-white p-8 rounded-xl shadow-lg">
           <h1 className="text-3xl font-bold text-red-600 text-center mb-6">

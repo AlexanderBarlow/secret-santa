@@ -27,8 +27,8 @@ export default function Navbar({ userType }) {
 			  ];
 
 	return (
-		<nav className="fixed bottom-0 w-full bg-white border-t shadow-lg">
-			<div className="flex justify-around items-center py-2">
+		<nav className="fixed bottom-0 w-full bg-white border-t shadow-lg h-16">
+			<div className="flex justify-around items-center h-full">
 				{links.map((link) => (
 					<Link key={link.href} href={link.href}>
 						<div
