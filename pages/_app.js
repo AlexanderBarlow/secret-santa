@@ -26,11 +26,11 @@ function App({ Component, pageProps }) {
 				<link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
 				<meta name="mobile-web-app-capable" content="yes" />
 				<meta name="apple-mobile-web-app-capable" content="yes" />
-				<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+				<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 				<meta name="apple-mobile-web-app-title" content="My PWA App" />
 			</Head>
 
-			<div className="flex flex-col min-h-[100dvh] min-h-screen w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-white">
+			<div className="flex flex-col min-h-[100dvh] w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-white">
 				<AuthProvider>
 					{isPublicPage ? (
 						<Component {...pageProps} />
