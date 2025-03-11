@@ -6,7 +6,7 @@ export default function PWAInstallButton() {
 
 	useEffect(() => {
 		const handleBeforeInstallPrompt = (event) => {
-			event.preventDefault(); // Prevent automatic prompt
+			event.preventDefault(); // Prevent automatic prompt≈çç≈≈
 			setInstallPrompt(event);
 			console.log("✅ PWA install prompt available");
 		};
