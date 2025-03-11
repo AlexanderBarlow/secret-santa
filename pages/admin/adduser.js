@@ -73,7 +73,7 @@ export default function SetAdminCode() {
 	};
 
 	return (
-		<div className="flex flex-col justify-between min-h-screen bg-gray-100 pb-20">
+		<div className="flex flex-col justify-between min-h-screen bg-gray-100">
 			<div className="flex flex-col lg:flex-row justify-center items-center flex-grow gap-10 p-6">
 				{/* Current Event Details (Now Above on Mobile) */}
 				<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
@@ -122,7 +122,7 @@ export default function SetAdminCode() {
 				</div>
 
 				{/* Admin Form */}
-				<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+				<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg pb-20">
 					<h1 className="text-3xl font-semibold text-center mb-6 text-black">
 						Set Admin Details
 					</h1>

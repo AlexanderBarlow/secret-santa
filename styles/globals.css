@@ -23,7 +23,7 @@ html, body {
   min-height: -webkit-fill-available; /* ✅ Fixes iOS height issue */
   overflow-x: hidden;
   background: azure;
-  color: rgb(var(--foreground-rgb));
+  background-color: rgb(243 244 246);
 }
 
 body {

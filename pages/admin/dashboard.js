@@ -104,7 +104,7 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 pb-20">
+    <div className="flex flex-col min-h-screen bg-gray-100">
       <div className="flex flex-col items-center flex-grow p-6">
         <h1 className="text-4xl font-bold text-center mb-6 text-black">
           Admin Dashboard
@@ -134,7 +134,7 @@ export default function Dashboard() {
             : "No users available."}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl pb-20">
           {loading
             ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />)
             : filteredUsers.map((user) => (

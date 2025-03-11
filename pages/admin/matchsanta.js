@@ -10,7 +10,7 @@ export default function MatchSantaPage() {
   const [unpaired, setUnpaired] = useState([]);
   const [selectedReceivers, setSelectedReceivers] = useState({});
   const [eventDate, setEventDate] = useState(null);
-  const [isEventLocked, setIsEventLocked] = useState(false); // Lock state
+  const [isEventLocked, setIsEventLocked] = useState(false);
 
   useEffect(() => {
     const fetchAdminDetails = async () => {
@@ -78,7 +78,7 @@ export default function MatchSantaPage() {
   };
 
   const handleSelectReceiver = async (giverId, receiverId) => {
-    if (isEventLocked) return; // Prevent assignment if locked
+    if (isEventLocked) return;
 
     try {
       const response = await axios.post("/api/admin/users/selectreceiver", {
@@ -122,9 +122,9 @@ export default function MatchSantaPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 pb-20">
-      <div className="flex flex-grow justify-center items-center p-6">
-        <div className="w-full max-w-3xl bg-white p-8 rounded-xl shadow-lg">
-          <h1 className="text-3xl font-bold text-red-600 text-center mb-6">
+      <div className="flex flex-grow justify-center items-center p-4 sm:p-6">
+        <div className="w-full max-w-3xl bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+          <h1 className="text-2xl sm:text-3xl font-bold text-red-600 text-center mb-4 sm:mb-6">
             Match Santa 🎅
           </h1>
 
@@ -157,34 +157,36 @@ export default function MatchSantaPage() {
             </p>
           )}
 
-          <div className="mt-8">
-            <h2 className="text-2xl font-semibold text-gray-800 text-center">
+          <div className="mt-6">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 text-center">
               Matched Results 🎁
             </h2>
 
             {users.length > 0 ? (
-              <ul className="mt-4 space-y-4">
+              <ul className="mt-4 space-y-4 max-h-[50vh] overflow-y-auto px-2 sm:px-0">
                 {users.map((user, index) => (
                   <li
                     key={index}
-                    className="bg-gray-100 p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-center gap-4"
+                    className="bg-gray-100 p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4"
                   >
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">
                       {user.email || "No giver"}
                     </span>
-                    <span className="text-gray-600 text-lg">➡️</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-gray-600 text-lg hidden sm:block">
+                      ➡️
+                    </span>
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">
                       {user.matchedSanta?.email || "No receiver"}
                     </span>
 
                     {user.matchedSanta === null && unpaired.length > 0 && (
-                      <div className="relative flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
                         <select
                           onChange={(e) =>
                             handleReceiverChange(user.id, e.target.value)
                           }
                           value={selectedReceivers[user.id] || ""}
-                          className="bg-white text-black px-3 py-2 border border-gray-400 rounded-lg w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="bg-white text-black px-3 py-2 border border-gray-400 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                           disabled={isEventLocked}
                         >
                           <option value={""} disabled>
@@ -207,11 +209,7 @@ export default function MatchSantaPage() {
                               selectedReceivers[user.id]
                             )
                           }
-                          className={`px-4 py-2 rounded-lg shadow-md transition w-full sm:w-auto ${
-                            isEventLocked
-                              ? "bg-gray-400 cursor-not-allowed text-gray-700"
-                              : "bg-green-500 text-white hover:bg-green-600"
-                          }`}
+                          className="px-4 py-2 rounded-lg shadow-md transition w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                           disabled={isEventLocked}
                         >
                           Assign

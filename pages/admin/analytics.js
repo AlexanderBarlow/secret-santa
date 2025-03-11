@@ -122,7 +122,14 @@ export default function AdminAnalytics() {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "#f4f6f8", minHeight: "100vh", pb: 20 }}>
+    <Box
+      sx={{
+        p: 3,
+        backgroundColor: "#f4f6f8",
+        minHeight: "100vh",
+        paddingBottom: 20,
+      }}
+    >
       <Typography
         variant="h4"
         sx={{ mb: 3, textAlign: "center", fontWeight: "bold", color: "#333" }}
@@ -146,8 +153,9 @@ export default function AdminAnalytics() {
         setAcceptedFilter={setAcceptedFilter}
       />
 
-      {/* ✅ User Table */}
-      <UserTable filteredUsers={filteredUsers} loading={loading} />
+      <div style={{ paddingBottom: 120 }}>
+        <UserTable filteredUsers={filteredUsers} loading={loading} />
+      </div>
 
       <AdminNavbar />
     </Box>

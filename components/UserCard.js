@@ -4,7 +4,7 @@ export default function ({ user, handleAcceptUser, openDeleteModal }) {
 	const [wishlistOpen, setWishlistOpen] = useState(false);
 
 	return (
-		<div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow flex flex-col justify-between min-h-[350px]">
+		<div className="bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow flex flex-col justify-between min-h-[350px] p-6">
 			{/* Profile Picture & Name */}
 			<div className="flex flex-col items-center mb-3">
 				<img
