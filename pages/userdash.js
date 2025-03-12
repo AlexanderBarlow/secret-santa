@@ -136,7 +136,7 @@ export default function UserDashboard() {
     try {
       await axios.post("/api/auth/logout");
       localStorage.removeItem("token");
-      router.push("/login");
+      router.push("/auth/signin");
     } catch (error) {
       setError(t("error_logging_out"));
     }
