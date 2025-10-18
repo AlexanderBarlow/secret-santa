@@ -1,296 +1,256 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import { useTranslation } from "next-i18next"; // Import the useTranslation hook
 import LanguageSwitcher from "../components/languageswitcher";
 
 export default function UserDashboard() {
-  const { t } = useTranslation(); // Initialize the translation function
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
-  const [wishlist, setWishlist] = useState([]);
-  const [matchedSanta, setMatchedSanta] = useState();
+  const [wishlistInputs, setWishlistInputs] = useState([]);
+  const [matchedSanta, setMatchedSanta] = useState(null);
   const [matchedSantaWishlist, setMatchedSantaWishlist] = useState([]);
+  const [eventDetails, setEventDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [wishlistInputs, setWishlistInputs] = useState([]);
-  const [eventDetails, setEventDetails] = useState({
-    eventDate: "",
-    matchSantaDate: "",
-    overview: "",
-  });
-  const router = useRouter();
+  const [tab, setTab] = useState("user");
 
+  // Fetch user, wishlist, and event data once
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
 
-        // Fetch user data
-        const userResponse = await axios.get("/api/userinfo", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const [userRes, wishlistRes, eventRes] = await Promise.all([
+          axios.get("/api/userinfo", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("/api/admin/users/addwishlist", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("/api/admin/users/adduser"),
+        ]);
 
-        setUser(userResponse.data);
-        setMatchedSanta(userResponse.data.matchedSanta);
+        setUser(userRes.data);
+        setMatchedSanta(userRes.data.matchedSanta || null);
+        setEventDetails(eventRes.data || {});
 
-        // Fetch wishlist data
-        const wishlistResponse = await axios.get(
-          "/api/admin/users/addwishlist",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        // Initialize wishlistInputs only once
+        setWishlistInputs(
+          wishlistRes.data?.wishlist?.length ? wishlistRes.data.wishlist : [""]
         );
-
-        if (wishlistResponse.data?.wishlist) {
-          setWishlist(wishlistResponse.data.wishlist);
-          setWishlistInputs(wishlistResponse.data.wishlist);
-        }
-
-        // Fetch event details
-        const eventResponse = await axios.get("/api/admin/users/adduser"); // Adjusted API endpoint for event details
-        setEventDetails(eventResponse.data);
-
-        setLoading(false);
-      } catch (err) {
-        setError(t("error_fetching_data"));
+      } catch {
+        setError("Error fetching data");
+      } finally {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, [t]);
+  }, []);
 
   useEffect(() => {
-    const fetchMatchedSanta = async () => {
+    if (!matchedSanta) return;
+    const fetchSantaWishlist = async () => {
       try {
-        if (!matchedSanta) return;
-
-        const matchedSantaResponse = await axios.post("/api/assigned", {
+        const res = await axios.post("/api/assigned", {
           email: matchedSanta.email,
         });
-
-        if (matchedSantaResponse.status === 200) {
-          setMatchedSantaWishlist(matchedSantaResponse.data.wishlist.items);
-        } else {
-          setMatchedSantaWishlist([]);
-        }
-      } catch (error) {
+        setMatchedSantaWishlist(res.data?.wishlist?.items || []);
+      } catch {
         setMatchedSantaWishlist([]);
       }
     };
-
-    fetchMatchedSanta();
+    fetchSantaWishlist();
   }, [matchedSanta]);
 
-  const handleAddToWishlist = async (e) => {
-    e.preventDefault();
-
-    const validWishlist = wishlistInputs.filter((item) => item.trim() !== "");
-
-    if (validWishlist.length === 0) {
-      setError(t("error_empty_wishlist"));
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await axios.post(
-        "/api/admin/users/addwishlist",
-        { wishlist: validWishlist },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        setWishlist(validWishlist);
-        setWishlistInputs(validWishlist);
-        setError("");
-        setSuccess(t("Wishlist updated successfully"));
-      }
-    } catch (err) {
-      setError(t("Please add items."));
-    }
-  };
-
   const handleInputChange = (index, value) => {
-    const updatedWishlist = [...wishlistInputs];
-    updatedWishlist[index] = value;
-    setWishlistInputs(updatedWishlist);
+    const updated = [...wishlistInputs];
+    updated[index] = value;
+    setWishlistInputs(updated);
   };
 
-  const handleAddWishlistItem = () => {
+  const addWishlistItem = () => {
     setWishlistInputs([...wishlistInputs, ""]);
   };
 
-  const handleLogout = async () => {
+  const removeWishlistItem = (index) => {
+    setWishlistInputs(wishlistInputs.filter((_, i) => i !== index));
+  };
+
+  const handleAddToWishlist = async (e) => {
+    e.preventDefault();
+    const validWishlist = wishlistInputs.map((w) => w.trim()).filter(Boolean);
+    if (!validWishlist.length) return setError("Wishlist cannot be empty");
+
     try {
-      await axios.post("/api/auth/logout");
-      localStorage.removeItem("token");
-      router.push("/auth/signin");
-    } catch (error) {
-      setError(t("error_logging_out"));
+      const token = localStorage.getItem("token");
+      await axios.post(
+        "/api/admin/users/addwishlist",
+        { wishlist: validWishlist },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSuccess("Wishlist updated successfully");
+      setError("");
+    } catch {
+      setError("Failed to save wishlist");
     }
   };
 
+  const handleLogout = async () => {
+    await axios.post("/api/auth/logout");
+    localStorage.removeItem("token");
+    router.push("/auth/signin");
+  };
+
+  const GlassCard = ({ children, className = "" }) => (
+    <div
+      className={`w-full p-6 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/30 shadow-xl text-white ${className}`}
+    >
+      {children}
+    </div>
+  );
+
   return (
-		<>
-			<div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-white to-red-700 text-white py-6">
-				<LanguageSwitcher />
-				<header className="w-full text-center py-5 shadow-md">
-					<h1 className="text-3xl font-bold tracking-wide text-gray-900">
-						{t("Secret Santa Dashboard")}
-					</h1>
-				</header>
+    <div className="min-h-screen bg-gradient-to-br from-red-700 via-pink-600 to-red-800 flex flex-col items-center text-white px-4 py-10">
+      <LanguageSwitcher />
+      <header className="mb-6 text-center">
+        <h1 className="text-4xl font-bold drop-shadow-lg">
+          Secret Santa Dashboard
+        </h1>
+        <p className="opacity-80">Spread joy and cheer this season!</p>
+      </header>
 
-				<main className="w-full max-w-5xl p-8 bg-white text-gray-900 rounded-xl shadow-lg mt-6 mx-auto">
-					{error && (
-						<div className="bg-red-100 text-red-600 p-4 rounded-md text-center mb-6">
-							<p>{error}</p>
-						</div>
-					)}
+      <div className="flex items-center bg-white/10 backdrop-blur-md rounded-full p-1 mb-6 border border-white/20">
+        {["user", "santa"].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition ${
+              tab === t
+                ? "bg-white/30 text-white"
+                : "text-gray-200 hover:bg-white/10"
+            }`}
+          >
+            {t === "user" ? "🎁 Your Info" : "🎅 Santa Info"}
+          </button>
+        ))}
+      </div>
 
-					{success && (
-						<div className="bg-green-100 text-green-600 p-4 rounded-md text-center mb-6">
-							<p>{success}</p>
-						</div>
-					)}
+      {error && (
+        <p className="bg-red-500/30 px-4 py-2 rounded-lg mb-3">{error}</p>
+      )}
+      {success && (
+        <p className="bg-green-500/30 px-4 py-2 rounded-lg mb-3">{success}</p>
+      )}
 
-					{loading ? (
-						<div className="text-center text-gray-600 text-lg">
-							{t("loading")}
-						</div>
-					) : (
-						<>
-							{user && (
-								<div className="mb-6 text-center">
-									<div className="flex flex-col items-center">
-										<img
-											src={user.profilePicture || "/default-profile.png"} // Fallback if no profile picture
-											alt="Profile"
-											className="w-24 h-24 rounded-full border-4 border-gray-300 shadow-lg object-cover"
-										/>
-										<h2 className="text-3xl font-semibold text-gray-800">
-											{t("welcome")}, {user.email}! 🎄
-										</h2>
-									</div>
-								</div>
-							)}
+      {loading ? (
+        <p className="text-white/70">Loading...</p>
+      ) : tab === "user" ? (
+        <GlassCard>
+          <div className="text-center mb-4">
+            <img
+              src={user?.profilePicture || "/default-profile.png"}
+              alt="Profile"
+              className="w-24 h-24 rounded-full border-4 border-white/40 mx-auto mb-4 object-cover"
+            />
+            <h2 className="text-2xl font-semibold">{user?.email}</h2>
+          </div>
 
-							{/* Flex Container for Wishlist, Matched Santa, and Event Details */}
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-								{/* Wishlist Section */}
-								<div className="p-6 bg-gray-50 rounded-xl shadow-lg flex flex-col items-center">
-									<h3 className="text-2xl font-semibold text-gray-800 mb-4">
-										{t("Your Wishlist")} 🎁
-									</h3>
-									<form onSubmit={handleAddToWishlist} className="w-full">
-										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-											{wishlistInputs.map((item, index) => (
-												<div
-													key={index}
-													className="p-4 bg-gray-200 rounded-lg shadow-sm text-center"
-												>
-													<input
-														type="text"
-														value={item}
-														onChange={(e) =>
-															handleInputChange(index, e.target.value)
-														}
-														placeholder={item || t("item")}
-														className="w-full p-2 border rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-													/>
-												</div>
-											))}
-										</div>
-										<button
-											type="submit"
-											className="w-full py-2 mt-4 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-										>
-											{t("Save Wishlist")}
-										</button>
-									</form>
+          <form onSubmit={handleAddToWishlist} className="space-y-3">
+            {wishlistInputs.map((item, index) => (
+              <div key={index} className="flex gap-2">
+                <input
+                  type="text"
+                  value={item}
+                  onChange={(e) => handleInputChange(index, e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  placeholder={`Item ${index + 1}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeWishlistItem(index)}
+                  className="px-3 py-2 bg-red-500/40 hover:bg-red-500/60 rounded-lg"
+                >
+                  ✖
+                </button>
+              </div>
+            ))}
 
-									<button
-										onClick={handleAddWishlistItem}
-										className="mt-4 w-full py-2 bg-green-600 text-white rounded-md shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-									>
-										{t("Add Item")}
-									</button>
-								</div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={addWishlistItem}
+                className="flex-1 bg-white/20 py-2 rounded-lg border border-white/30 hover:bg-white/30"
+              >
+                ➕ Add Item
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-white/30 py-2 rounded-lg border border-white/40 hover:bg-white/40 font-semibold"
+              >
+                💾 Save Wishlist
+              </button>
+            </div>
+          </form>
+        </GlassCard>
+      ) : (
+        <GlassCard>
+          <h3 className="text-2xl font-semibold mb-3 text-center">
+            Your Secret Santa
+          </h3>
+          {matchedSanta ? (
+            <div className="text-center space-y-2">
+              <p>
+                Name: <strong>{matchedSanta.email}</strong>
+              </p>
+              <h4 className="mt-3 font-semibold">Their Wishlist 🎁</h4>
+              <ul className="mt-2 space-y-1">
+                {matchedSantaWishlist.length ? (
+                  matchedSantaWishlist.map((item, i) => (
+                    <li key={i} className="bg-white/10 px-3 py-1 rounded-md">
+                      {item.item}
+                    </li>
+                  ))
+                ) : (
+                  <p className="opacity-70">No Wishlist Yet!</p>
+                )}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-center opacity-80">No Match Yet</p>
+          )}
+        </GlassCard>
+      )}
 
-								{/* Matched Santa Section */}
-								<div className="p-6 bg-gray-50 rounded-xl shadow-lg flex flex-col items-center">
-									<h3 className="text-2xl font-semibold text-gray-800 mb-4">
-										{t("Matched Santa")} 🎅
-									</h3>
-									{matchedSanta ? (
-										<div className="text-center">
-											<p>
-												<strong>{t("Name")}:</strong> {matchedSanta.email}
-											</p>
-											<p className="mt-4">
-												<strong>{t("wishlist")}:</strong>
-											</p>
-											<ul className="mt-2">
-												{matchedSantaWishlist.length > 0 ? (
-													matchedSantaWishlist.map((item, index) => (
-														<li key={index} className="text-gray-700">
-															{item.item}
-														</li>
-													))
-												) : (
-													<p>{t("No Wishlist Yet!")}</p>
-												)}
-											</ul>
-										</div>
-									) : (
-										<p>{t("No Match Yet")}</p>
-									)}
-								</div>
+      <GlassCard className="mt-10 max-w-lg text-center">
+        <h4 className="font-semibold text-lg mb-2">Event Details</h4>
+        <p>
+          Event Date:{" "}
+          {eventDetails.eventDate
+            ? new Date(eventDetails.eventDate).toLocaleDateString()
+            : "-"}
+        </p>
+        <p>
+          Match Date:{" "}
+          {eventDetails.matchSantaDate
+            ? new Date(eventDetails.matchSantaDate).toLocaleDateString()
+            : "-"}
+        </p>
+        <p>Overview: {eventDetails.overview || "-"}</p>
+      </GlassCard>
 
-								{/* Event Details Section */}
-								<div className="p-6 bg-gray-50 rounded-xl shadow-lg flex flex-col items-center">
-									<h3 className="text-2xl font-semibold text-gray-800 mb-4">
-										{t("Event Details")} 🎄
-									</h3>
-									<div className="text-center">
-										<p>
-											<strong>{t("Event Date")}:</strong>{" "}
-											{new Date(eventDetails.eventDate).toLocaleDateString()}
-										</p>
-										<p>
-											<strong>{t("Match Date")}:</strong>{" "}
-											{new Date(
-												eventDetails.matchSantaDate
-											).toLocaleDateString()}
-										</p>
-										<p>
-											<strong>{t("Overview")}:</strong> {eventDetails.overview}
-										</p>
-									</div>
-								</div>
-							</div>
-						</>
-					)}
-				</main>
-
-				<button
-					onClick={handleLogout}
-					className="fixed bottom-4 right-4 px-6 py-3 bg-white text-red-500 font-semibold rounded-full shadow-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-red-500"
-				>
-					{t("logout")}
-				</button>
-			</div>
-		</>
-	);
+      <button
+        onClick={handleLogout}
+        className="fixed bottom-4 right-4 px-5 py-3 bg-white/30 text-white font-semibold rounded-full backdrop-blur-md border border-white/40 shadow-lg hover:bg-white/40 transition"
+      >
+        Logout
+      </button>
+    </div>
+  );
 }

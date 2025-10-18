@@ -10,6 +10,7 @@ async function main() {
 			email: "admin@example.com",
 			password: hashedPassword,
 			isAdmin: true,
+			profilePicture: "cow1.jpg"
 		},
 	});
 

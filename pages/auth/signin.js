@@ -104,7 +104,7 @@ export default function SignIn() {
 			</div>
 			<div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
 				<h1 className="text-3xl font-semibold text-center mb-6 text-black">
-					{t("sign_in")}
+					{t("Sign In")}
 				</h1>
 				<form onSubmit={handleSignIn} className="space-y-6">
 					<div>
@@ -112,12 +112,12 @@ export default function SignIn() {
 							htmlFor="email"
 							className="block text-sm font-medium text-gray-600"
 						>
-							{t("full_name")}
+							{t("Full Name")}
 						</label>
 						<input
 							type="text"
 							id="email"
-							placeholder={t("name_placeholder")}
+							placeholder={t("John Doe")}
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"
@@ -130,12 +130,12 @@ export default function SignIn() {
 							htmlFor="password"
 							className="block text-sm font-medium text-gray-600"
 						>
-							{t("password")}
+							{t("Password")}
 						</label>
 						<input
 							type="password"
 							id="password"
-							placeholder={t("password_placeholder")}
+							placeholder={t("")}
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 							className="mt-2 p-3 w-full border border-gray-300 rounded-md text-black"
@@ -155,16 +155,16 @@ export default function SignIn() {
 						type="submit"
 						className="w-full py-3 mt-4 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600"
 					>
-						{t("sign_in_button")}
+						{t("SIGN IN")}
 					</button>
 				</form>
 				<p className="text-center mt-4 text-black">
-					{t("new_user")}{" "}
+					{t("New User")}{" "}
 					<span
 						onClick={navigateToCreateAccount}
 						className="text-blue-500 hover:underline cursor-pointer"
 					>
-						{t("sign_up_here")}
+						{t("Sign Up Here")}
 					</span>
 				</p>
 			</div>
