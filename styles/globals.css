@@ -63,3 +63,56 @@ body {
 .toggle-checkbox:checked + .toggle-label {
   background-color: #34d399;
 }
+
+/* === Snowfall Animation === */
+.snowfall {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.snowflake {
+  position: absolute;
+  top: -10%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+  animation: fall linear infinite;
+}
+
+.snowflake.small {
+  width: 20px;
+  height: 20px;
+  background-image: url("/snowflake.png");
+  animation-duration: 12s;
+}
+.snowflake.medium {
+  width: 35px;
+  height: 35px;
+  background-image: url("/snowflake.png");
+  animation-duration: 16s;
+}
+.snowflake.large {
+  width: 50px;
+  height: 50px;
+  background-image: url("/snowflake.png");
+  animation-duration: 20s;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-10vh) translateX(0);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(110vh) translateX(20px);
+    opacity: 0;
+  }
+}
+
+
