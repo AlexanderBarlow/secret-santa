@@ -2,8 +2,9 @@
   "name": "CFA Secret Santa",
   "short_name": "CFA SS",
   "description": "A simple app that allows CFA workers to sign up for secret santa and track event details.",
-  "start_url": "/?standalone=true",
+  "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "icons": [
