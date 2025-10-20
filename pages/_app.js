@@ -14,23 +14,23 @@ function App({ Component, pageProps }) {
   return (
     <>
       <Head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Transparent theme for Android */}
+        {/* Android */
+  /* Transparent status overlay on Android */}
         <meta name="theme-color" content="transparent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="CFA Secret Santa" />
 
-        {/* Transparent bar for iOS */}
+        {/* iOS standalone (PWA from Home Screen) */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* This makes the status bar TRANSLUCENT so the body background shows through */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="CFA Secret Santa" />
         <link rel="apple-touch-icon" href="/candy.jpg" />
       </Head>
+
 
 
 
