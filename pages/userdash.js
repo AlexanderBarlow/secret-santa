@@ -177,7 +177,7 @@ export default function UserDashboard() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen w-full overflow-x-hidden overflow-y-auto text-white">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white">
 
       {/* === Animated Snow Overlay === */}
       <div className="snowfall">
