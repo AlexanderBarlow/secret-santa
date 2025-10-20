@@ -17,18 +17,17 @@
 }
 
 /* Full-bleed background for iOS standalone */
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
-  /* Your app gradient */
-  background: linear-gradient(135deg, #1a1a40 0%, #4054b2 50%, #1b1b2f 100%);
-  background-attachment: fixed; /* reduces jump on rotate */
-  -webkit-font-smoothing: antialiased;
-  -webkit-text-size-adjust: 100%;
+  background: linear-gradient(135deg, #1a1a40, #4054b2, #1b1b2f);
+  background-attachment: fixed;
   overflow-x: hidden;
+  color: white;
 }
 
-/* Safe-area padding so content doesn't sit under notch/home bar */
+/* Safe area support */
 body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
