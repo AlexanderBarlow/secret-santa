@@ -177,7 +177,7 @@ export default function UserDashboard() {
   );
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] flex flex-col items-center">
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white pt-5 pb-[env(safe-area-inset-bottom)] flex flex-col items-center">
 
 
       {/* === Animated Snow Overlay === */}
