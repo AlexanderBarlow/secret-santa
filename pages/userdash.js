@@ -177,7 +177,8 @@ export default function UserDashboard() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen w-full overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white">
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] flex flex-col items-center">
+
 
       {/* === Animated Snow Overlay === */}
       <div className="snowfall">
@@ -190,6 +191,7 @@ export default function UserDashboard() {
 
       <LanguageSwitcher theme="dark" />
 
+      <section className="w-full max-w-4xl px-4 sm:px-6 md:px-8 flex flex-col items-center justify-start space-y-8 z-10 pb-20">
       <header className="mb-10 text-center z-10 px-4">
         <h1 className="text-4xl sm:text-5xl font-bold drop-shadow-md tracking-wide">
           Secret Santa Dashboard 🎄
@@ -309,7 +311,8 @@ export default function UserDashboard() {
             </p>
           </GlassCard>
         </div>
-      )}
+        )}
+      </section>
 
       {/* === Logout Button === */}
       <button
