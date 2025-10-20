@@ -16,20 +16,24 @@
   }
 }
 
-/* ✅ Ensures full height on iPhone & Android */
+/* Full-bleed background for iOS standalone */
 html, body {
-  height: 100%; /* ✅ Allows dynamic resizing */
-  min-height: 100vh;
-  min-height: -webkit-fill-available; /* ✅ Fixes iOS height issue */
+  height: 100%;
+  margin: 0;
+  /* Your app gradient */
+  background: linear-gradient(135deg, #1a1a40 0%, #4054b2 50%, #1b1b2f 100%);
+  background-attachment: fixed; /* reduces jump on rotate */
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
-  background: azure;
-  background-color: rgb(243 244 246);
 }
 
+/* Safe-area padding so content doesn't sit under notch/home bar */
 body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
+
 
 /* ✅ Ensures Next.js root container is full height */
 #__next {
