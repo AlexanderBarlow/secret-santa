@@ -9,36 +9,46 @@
   --background-end-rgb: 27, 27, 47;
 }
 
-/* === Full-bleed Background (no scroll jitter) === */
+/* === Global Fullscreen Background === */
 html,
 body {
   height: 100%;
   margin: 0;
-  padding: 0;
-  background: linear-gradient(135deg, #1a1a40, #4054b2, #1b1b2f);
-  background-size: cover;
-  background-position: center;
+  background: white; /* default background */
   overflow-x: hidden;
   color: white;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
-  -webkit-tap-highlight-color: transparent;
 }
 
-/* === Safe Area Insets === */
+/* Safe-area padding */
 body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* === Ensure Next.js Root Container Fills Dynamic Viewport === */
+/* Next.js root */
 #__next {
+  min-height: 100dvh;
+  height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
-  min-height: 100dvh; /* dynamically respects visible viewport */
-  height: -webkit-fill-available; /* ensures full-screen on iOS Safari */
-  background: transparent; /* let gradient show through */
+  background: transparent;
 }
+
+
+.fullscreen-page {
+  min-height: 100dvh;
+  height: -webkit-fill-available;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background: transparent;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 
 /* === Safe bottom utility (optional) === */
 .safe-bottom {

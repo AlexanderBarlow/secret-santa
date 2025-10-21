@@ -82,7 +82,8 @@ export default function SignIn() {
   const navigateToCreateAccount = () => router.push("/auth/signup");
 
   return (
-    <div className="relative flex flex-col items-center min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#ffffff] to-[#e8edf5] pt-10 pb-12 px-4">
+    <div className="fullscreen-page bg-white text-gray-900">
+
       {/* Language Switcher (Light Mode) */}
       <LanguageSwitcher theme="light" />
 
