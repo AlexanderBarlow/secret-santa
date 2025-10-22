@@ -1,234 +1,252 @@
-import { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect, memo, useRef, useLayoutEffect } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
-import { Loader2 } from "lucide-react"; // Loading icon for better UX
+import { Loader2, Shuffle, Save, UserX } from "lucide-react";
 
 export default function MatchSantaPage() {
+  const [users, setUsers] = useState([]);
+  const [localMatches, setLocalMatches] = useState([]);
+  const [roleGroups, setRoleGroups] = useState({ FOH: [], BOH: [] });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [users, setUsers] = useState([]);
-  const [unpaired, setUnpaired] = useState([]);
-  const [selectedReceivers, setSelectedReceivers] = useState({});
-  const [eventDate, setEventDate] = useState(null);
-  const [isEventLocked, setIsEventLocked] = useState(false);
+  const scrollPos = useRef(0);
 
-  useEffect(() => {
-    const fetchAdminDetails = async () => {
-      try {
-        const response = await axios.get("/api/admin/users/adduser");
-        const fetchedEventDate = response.data.eventDate;
+  // Restore scroll after updates
+  useLayoutEffect(() => {
+    window.scrollTo({ top: scrollPos.current, behavior: "instant" });
+  }, [localMatches]);
 
-        if (fetchedEventDate) {
-          const eventDateObj = new Date(fetchedEventDate);
-          setEventDate(eventDateObj);
+  const saveScroll = () => {
+    scrollPos.current = window.scrollY;
+  };
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          setIsEventLocked(eventDateObj > today);
-        }
-      } catch (err) {
-        console.error(
-          err.response?.data?.error || "Failed to fetch admin details."
-        );
-      }
-    };
-
-    fetchAdminDetails();
-  }, []);
-
+  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("/api/admin/users");
-        setUsers(response.data);
-        updateUnpairedList(response.data);
-      } catch (error) {
-        console.error("Error fetching users:", error);
+        const res = await axios.get("/api/admin/users");
+        setUsers(res.data);
+        const foh = res.data.filter((u) => u.role === "FRONT_OF_HOUSE");
+        const boh = res.data.filter((u) => u.role === "BACK_OF_HOUSE");
+        setRoleGroups({ FOH: foh, BOH: boh });
+      } catch (err) {
+        console.error("Error fetching users:", err);
       }
     };
     fetchUsers();
   }, []);
 
-  const updateUnpairedList = (userList) => {
-    const unpairedUsers = userList.filter((user) => user.matchedBy === null);
-    setUnpaired(unpairedUsers);
+  // Shuffle helper
+  const shuffleArray = (arr) => arr.sort(() => Math.random() - 0.5);
+
+  // Generate Matches
+  const handleGenerateMatches = () => {
+    saveScroll();
+    const gen = (group) => {
+      if (group.length < 2) return [];
+      const s = shuffleArray([...group]);
+      return s.map((giver, i) => ({
+        giver,
+        receiver: s[(i + 1) % s.length],
+      }));
+    };
+    setLocalMatches([...gen(roleGroups.FOH), ...gen(roleGroups.BOH)]);
+    setMessage("🎁 Matches generated locally! You can edit before saving.");
   };
 
-  const handleMatchUsers = async () => {
+  // Unpair
+  const handleUnpair = (giverId) => {
+    saveScroll();
+    setLocalMatches((p) =>
+      p.map((m) =>
+        m.giver.id === giverId ? { ...m, receiver: null } : m
+      )
+    );
+  };
+
+  // Reassign
+  const handleReassign = (giverId, receiverId) => {
+    saveScroll();
+    const receiver = users.find((u) => u.id === Number(receiverId));
+    setLocalMatches((p) =>
+      p.map((m) =>
+        m.giver.id === giverId ? { ...m, receiver } : m
+      )
+    );
+  };
+
+  // Save
+  const handleSaveMatches = async () => {
+    saveScroll();
     setLoading(true);
-    setMessage("");
-
     try {
-      const response = await axios.post("/api/admin/users/matchusers");
-      if (response.status === 200) {
-        setMessage("Users have been successfully matched!");
-
-        const updatedUsersResponse = await axios.get("/api/admin/users");
-        setUsers(updatedUsersResponse.data);
-        updateUnpairedList(updatedUsersResponse.data);
-      } else {
-        setMessage("An error occurred during the matching process.");
-      }
-    } catch (error) {
-      setMessage("An error occurred during the matching process.");
+      await axios.post("/api/admin/users/selectmatch", {
+        matches: localMatches
+          .filter((m) => m.receiver)
+          .map((m) => ({
+            giverId: m.giver.id,
+            receiverId: m.receiver.id,
+          })),
+      });
+      setMessage("✅ Matches saved successfully!");
+    } catch (err) {
+      console.error("Error saving matches:", err);
+      setMessage("❌ Failed to save matches.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectReceiver = async (giverId, receiverId) => {
-    if (isEventLocked) return;
+  // Match Card
+  const MatchCard = memo(({ giver, receiver }) => {
+    const alreadyMatchedIds = new Set(
+      localMatches.filter((m) => m.receiver?.id).map((m) => m.receiver.id)
+    );
 
-    try {
-      const response = await axios.post("/api/admin/users/selectreceiver", {
-        giverId: giverId,
-        receiverId: Number(receiverId),
-      });
+    const availableReceivers = users.filter(
+      (u) =>
+        u.role === giver.role &&
+        u.id !== giver.id &&
+        (!alreadyMatchedIds.has(u.id) || receiver?.id === u.id)
+    );
 
-      if (response.status === 200) {
-        const receiver = unpaired.find(
-          (user) => user.id === Number(receiverId)
-        );
-
-        const updatedUsers = users.map((user) =>
-          user.id === giverId ? { ...user, matchedSanta: receiver } : user
-        );
-
-        const updatedUnpaired = unpaired.filter(
-          (user) => user.id !== Number(receiverId)
-        );
-        setUsers(updatedUsers);
-        setUnpaired(updatedUnpaired);
-        setMessage("Receiver has been assigned.");
-      } else {
-        setMessage("An error occurred while assigning the receiver.");
-      }
-    } catch (error) {
-      if (error.response && error.response.status === 400) {
-        setMessage("Invalid request: Giver and receiver cannot be the same.");
-      } else {
-        setMessage("An unexpected error occurred.");
-      }
-    }
-  };
-
-  const handleReceiverChange = (giverId, receiverId) => {
-    setSelectedReceivers((prevState) => ({
-      ...prevState,
-      [giverId]: receiverId,
-    }));
-  };
-
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-100 pb-20">
-      <div className="flex flex-grow justify-center items-center p-4 sm:p-6">
-        <div className="w-full max-w-3xl bg-white p-6 sm:p-8 rounded-xl shadow-lg">
-          <h1 className="text-2xl sm:text-3xl font-bold text-red-600 text-center mb-4 sm:mb-6">
-            Match Santa 🎅
-          </h1>
-
-          {message && (
-            <p className="text-center text-green-600 font-medium mb-4">
-              {message}
+    return (
+      <div
+        className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-5 text-white shadow-lg transition-transform hover:scale-[1.02]"
+      >
+        <div className="flex items-center gap-4 mb-4">
+          <img
+            src={giver.profilePicture || "/default-profile.png"}
+            alt={giver.email}
+            className="w-14 h-14 rounded-full border border-white/30 object-cover"
+          />
+          <div>
+            <p className="font-semibold text-lg break-words">{giver.email}</p>
+            <p className="text-sm opacity-70">
+              🎁 Assigned to:{" "}
+              {receiver?.email ? (
+                <span className="text-white/90">{receiver.email}</span>
+              ) : (
+                <span className="text-white/50">Not yet matched</span>
+              )}
             </p>
-          )}
-
-          <button
-            onClick={handleMatchUsers}
-            disabled={loading || isEventLocked}
-            className={`w-full flex justify-center items-center gap-2 py-3 font-semibold rounded-lg shadow-md transition focus:outline-none focus:ring-2 ${
-              isEventLocked
-                ? "bg-gray-400 cursor-not-allowed text-gray-700"
-                : "bg-red-500 text-white hover:bg-red-600 focus:ring-red-400"
-            }`}
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={20} />
-            ) : (
-              "Generate Matches"
-            )}
-          </button>
-
-          {isEventLocked && (
-            <p className="text-center text-red-500 font-medium mt-2">
-              Matches cannot be generated before the event date (
-              {eventDate ? eventDate.toDateString() : "loading..."}).
-            </p>
-          )}
-
-          <div className="mt-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 text-center">
-              Matched Results 🎁
-            </h2>
-
-            {users.length > 0 ? (
-              <ul className="mt-4 space-y-4 max-h-[50vh] overflow-y-auto px-2 sm:px-0">
-                {users.map((user, index) => (
-                  <li
-                    key={index}
-                    className="bg-gray-100 p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4"
-                  >
-                    <span className="font-medium text-gray-900 text-sm sm:text-base">
-                      {user.email || "No giver"}
-                    </span>
-                    <span className="text-gray-600 text-lg hidden sm:block">
-                      ➡️
-                    </span>
-                    <span className="font-medium text-gray-900 text-sm sm:text-base">
-                      {user.matchedSanta?.email || "No receiver"}
-                    </span>
-
-                    {user.matchedSanta === null && unpaired.length > 0 && (
-                      <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
-                        <select
-                          onChange={(e) =>
-                            handleReceiverChange(user.id, e.target.value)
-                          }
-                          value={selectedReceivers[user.id] || ""}
-                          className="bg-white text-black px-3 py-2 border border-gray-400 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isEventLocked}
-                        >
-                          <option value={""} disabled>
-                            Select Receiver
-                          </option>
-                          {unpaired.map((unpairedUser) => (
-                            <option
-                              key={unpairedUser.id}
-                              value={unpairedUser.id}
-                            >
-                              {unpairedUser.email}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() =>
-                            selectedReceivers[user.id] &&
-                            handleSelectReceiver(
-                              user.id,
-                              selectedReceivers[user.id]
-                            )
-                          }
-                          className="px-4 py-2 rounded-lg shadow-md transition w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                          disabled={isEventLocked}
-                        >
-                          Assign
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-center text-gray-500 mt-4">
-                Start matching now to generate Santa pairs!
-              </p>
-            )}
           </div>
         </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            className="flex-1 bg-white/20 border border-white/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm"
+            value={receiver?.id || ""}
+            onChange={(e) => handleReassign(giver.id, e.target.value)}
+            onFocus={saveScroll} // preserve scroll when focusing
+          >
+            <option value="">Select Receiver</option>
+            {availableReceivers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.email}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => handleUnpair(giver.id)}
+            className={`w-10 h-10 rounded-full ${receiver
+                ? "bg-red-500/30 hover:bg-red-500/50"
+                : "bg-gray-500/20 cursor-not-allowed"
+              } border border-white/30 flex items-center justify-center transition-all duration-200`}
+            disabled={!receiver}
+          >
+            <UserX className="w-5 h-5 text-white" />
+          </button>
+        </div>
+      </div>
+    );
+  });
+
+  // Role section
+  const RoleSection = ({ title, roleMatches }) => (
+    <section className="w-full mb-10">
+      <h2 className="text-2xl font-bold text-center mb-6 text-white/90">
+        {title} 🎄
+      </h2>
+      {roleMatches.length === 0 ? (
+        <p className="text-center text-white/60">
+          No matches yet — click “Generate Matches”
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {roleMatches.map(({ giver, receiver }) => (
+            <MatchCard
+              key={giver.id}
+              giver={giver}
+              receiver={receiver}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  return (
+    <main
+      className="min-h-screen w-full bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white flex flex-col items-center pb-24 px-4 overflow-x-hidden overflow-y-auto"
+      style={{ overscrollBehavior: "contain" }}
+    >
+      {/* Header */}
+      <header className="text-center mt-10 mb-8 z-10 sticky top-0 bg-gradient-to-br from-[#1a1a40]/90 via-[#4054b2]/80 to-[#1b1b2f]/90 backdrop-blur-md py-4 rounded-xl w-full max-w-3xl shadow-md">
+        <h1 className="text-3xl sm:text-4xl font-bold drop-shadow-md">
+          Match Santa 🎅
+        </h1>
+        <p className="opacity-80 mt-1 text-sm sm:text-base">
+          Generate, edit, and save Secret Santa matches
+        </p>
+      </header>
+
+      {message && (
+        <p className="text-center text-green-400 font-medium mb-4 bg-white/10 py-2 px-4 rounded-full backdrop-blur-md">
+          {message}
+        </p>
+      )}
+
+      {/* Buttons */}
+      <div className="flex flex-wrap justify-center gap-4 mb-10 z-10">
+        <button
+          onClick={handleGenerateMatches}
+          disabled={loading}
+          className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/20 hover:bg-white/30 border border-white/40 backdrop-blur-md shadow-lg font-semibold transition-all duration-200"
+        >
+          <Shuffle className="w-5 h-5" /> Generate Matches
+        </button>
+        <button
+          onClick={handleSaveMatches}
+          disabled={loading || localMatches.length === 0}
+          className="flex items-center gap-2 px-6 py-3 rounded-full bg-green-500/30 hover:bg-green-500/50 border border-white/40 backdrop-blur-md shadow-lg font-semibold transition-all duration-200"
+        >
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              <Save className="w-5 h-5" /> Save Matches
+            </>
+          )}
+        </button>
       </div>
 
+      <RoleSection
+        title="Front of House"
+        roleMatches={localMatches.filter(
+          (m) => m.giver.role === "FRONT_OF_HOUSE"
+        )}
+      />
+      <RoleSection
+        title="Back of House"
+        roleMatches={localMatches.filter(
+          (m) => m.giver.role === "BACK_OF_HOUSE"
+        )}
+      />
+
       <AdminNavbar />
-    </div>
+    </main>
   );
 }
