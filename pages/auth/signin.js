@@ -82,7 +82,8 @@ export default function SignIn() {
   const navigateToCreateAccount = () => router.push("/auth/signup");
 
   return (
-    <div className="fullscreen-page bg-white text-gray-900">
+    <div className="fullscreen-page bg-white text-gray-900 !bg-white">
+
 
       {/* Language Switcher (Light Mode) */}
       <LanguageSwitcher theme="light" />
