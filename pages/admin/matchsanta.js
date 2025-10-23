@@ -1,252 +1,242 @@
 "use client";
-import React, { useState, useEffect, memo, useRef, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
-import { Loader2, Shuffle, Save, UserX } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MatchSantaPage() {
-  const [users, setUsers] = useState([]);
-  const [localMatches, setLocalMatches] = useState([]);
-  const [roleGroups, setRoleGroups] = useState({ FOH: [], BOH: [] });
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const scrollPos = useRef(0);
+  const [users, setUsers] = useState([]);
+  const [localMatches, setLocalMatches] = useState({});
 
-  // Restore scroll after updates
-  useLayoutEffect(() => {
-    window.scrollTo({ top: scrollPos.current, behavior: "instant" });
-  }, [localMatches]);
-
-  const saveScroll = () => {
-    scrollPos.current = window.scrollY;
-  };
-
-  // Fetch users
+  // === Fetch all users (and their matches) on load ===
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get("/api/admin/users");
-        setUsers(res.data);
-        const foh = res.data.filter((u) => u.role === "FRONT_OF_HOUSE");
-        const boh = res.data.filter((u) => u.role === "BACK_OF_HOUSE");
-        setRoleGroups({ FOH: foh, BOH: boh });
-      } catch (err) {
-        console.error("Error fetching users:", err);
+        const { data } = await axios.get("/api/admin/users");
+        setUsers(data);
+        initializeLocalMatches(data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
       }
     };
     fetchUsers();
   }, []);
 
-  // Shuffle helper
-  const shuffleArray = (arr) => arr.sort(() => Math.random() - 0.5);
+  // === Initialize match state from DB ===
+  const initializeLocalMatches = (userList) => {
+    const matches = {};
+    userList.forEach((user) => {
+      if (user.matchedSantaId) {
+        matches[user.id] = user.matchedSantaId;
+      }
+    });
+    setLocalMatches(matches);
+  };
 
-  // Generate Matches
-  const handleGenerateMatches = () => {
-    saveScroll();
-    const gen = (group) => {
-      if (group.length < 2) return [];
-      const s = shuffleArray([...group]);
-      return s.map((giver, i) => ({
-        giver,
-        receiver: s[(i + 1) % s.length],
+  // === Handle selection change ===
+  const handleChange = (giverId, receiverId) => {
+    if (giverId === receiverId) return; // prevent self match
+    setLocalMatches((prev) => ({
+      ...prev,
+      [giverId]: receiverId ? Number(receiverId) : null,
+    }));
+  };
+
+  // === Handle remove match (keep card) ===
+  const handleRemoveMatch = (giverId) => {
+    setLocalMatches((prev) => ({
+      ...prev,
+      [giverId]: null,
+    }));
+  };
+
+  // === Save matches to DB ===
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage("");
+
+    const matchesArray = Object.entries(localMatches)
+      .filter(([_, receiverId]) => receiverId)
+      .map(([giverId, receiverId]) => ({
+        giverId: Number(giverId),
+        receiverId: Number(receiverId),
       }));
-    };
-    setLocalMatches([...gen(roleGroups.FOH), ...gen(roleGroups.BOH)]);
-    setMessage("🎁 Matches generated locally! You can edit before saving.");
-  };
 
-  // Unpair
-  const handleUnpair = (giverId) => {
-    saveScroll();
-    setLocalMatches((p) =>
-      p.map((m) =>
-        m.giver.id === giverId ? { ...m, receiver: null } : m
-      )
-    );
-  };
-
-  // Reassign
-  const handleReassign = (giverId, receiverId) => {
-    saveScroll();
-    const receiver = users.find((u) => u.id === Number(receiverId));
-    setLocalMatches((p) =>
-      p.map((m) =>
-        m.giver.id === giverId ? { ...m, receiver } : m
-      )
-    );
-  };
-
-  // Save
-  const handleSaveMatches = async () => {
-    saveScroll();
-    setLoading(true);
     try {
-      await axios.post("/api/admin/users/selectmatch", {
-        matches: localMatches
-          .filter((m) => m.receiver)
-          .map((m) => ({
-            giverId: m.giver.id,
-            receiverId: m.receiver.id,
-          })),
-      });
+      await axios.post("/api/admin/users/selectmatch", { matches: matchesArray });
       setMessage("✅ Matches saved successfully!");
-    } catch (err) {
-      console.error("Error saving matches:", err);
-      setMessage("❌ Failed to save matches.");
+    } catch (error) {
+      console.error("Error saving matches:", error);
+      setMessage("❌ Error saving matches.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  // Match Card
-  const MatchCard = memo(({ giver, receiver }) => {
-    const alreadyMatchedIds = new Set(
-      localMatches.filter((m) => m.receiver?.id).map((m) => m.receiver.id)
-    );
-
-    const availableReceivers = users.filter(
-      (u) =>
-        u.role === giver.role &&
-        u.id !== giver.id &&
-        (!alreadyMatchedIds.has(u.id) || receiver?.id === u.id)
-    );
-
-    return (
-      <div
-        className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-5 text-white shadow-lg transition-transform hover:scale-[1.02]"
-      >
-        <div className="flex items-center gap-4 mb-4">
-          <img
-            src={giver.profilePicture || "/default-profile.png"}
-            alt={giver.email}
-            className="w-14 h-14 rounded-full border border-white/30 object-cover"
-          />
-          <div>
-            <p className="font-semibold text-lg break-words">{giver.email}</p>
-            <p className="text-sm opacity-70">
-              🎁 Assigned to:{" "}
-              {receiver?.email ? (
-                <span className="text-white/90">{receiver.email}</span>
-              ) : (
-                <span className="text-white/50">Not yet matched</span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <select
-            className="flex-1 bg-white/20 border border-white/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm"
-            value={receiver?.id || ""}
-            onChange={(e) => handleReassign(giver.id, e.target.value)}
-            onFocus={saveScroll} // preserve scroll when focusing
-          >
-            <option value="">Select Receiver</option>
-            {availableReceivers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.email}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={() => handleUnpair(giver.id)}
-            className={`w-10 h-10 rounded-full ${receiver
-                ? "bg-red-500/30 hover:bg-red-500/50"
-                : "bg-gray-500/20 cursor-not-allowed"
-              } border border-white/30 flex items-center justify-center transition-all duration-200`}
-            disabled={!receiver}
-          >
-            <UserX className="w-5 h-5 text-white" />
-          </button>
-        </div>
-      </div>
-    );
-  });
-
-  // Role section
-  const RoleSection = ({ title, roleMatches }) => (
-    <section className="w-full mb-10">
-      <h2 className="text-2xl font-bold text-center mb-6 text-white/90">
-        {title} 🎄
-      </h2>
-      {roleMatches.length === 0 ? (
-        <p className="text-center text-white/60">
-          No matches yet — click “Generate Matches”
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {roleMatches.map(({ giver, receiver }) => (
-            <MatchCard
-              key={giver.id}
-              giver={giver}
-              receiver={receiver}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
+  const groupByRole = (role) => users.filter((u) => u.role === role);
 
   return (
-    <main
-      className="min-h-screen w-full bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white flex flex-col items-center pb-24 px-4 overflow-x-hidden overflow-y-auto"
-      style={{ overscrollBehavior: "contain" }}
-    >
-      {/* Header */}
-      <header className="text-center mt-10 mb-8 z-10 sticky top-0 bg-gradient-to-br from-[#1a1a40]/90 via-[#4054b2]/80 to-[#1b1b2f]/90 backdrop-blur-md py-4 rounded-xl w-full max-w-3xl shadow-md">
-        <h1 className="text-3xl sm:text-4xl font-bold drop-shadow-md">
-          Match Santa 🎅
-        </h1>
-        <p className="opacity-80 mt-1 text-sm sm:text-base">
-          Generate, edit, and save Secret Santa matches
-        </p>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white pb-28">
+      {/* === Sticky Header with Save Button === */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/10 border-b border-white/20 shadow-lg">
+        <div className="max-w-5xl mx-auto flex items-center justify-between p-4 sm:p-5">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-wide drop-shadow-sm">
+            🎅 Match Santa
+          </h1>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSave}
+            disabled={saving}
+            className="px-5 py-2 rounded-full bg-white/20 border border-white/40 backdrop-blur-md 
+                       text-white font-semibold shadow-md hover:bg-white/30 transition flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="animate-spin w-4 h-4" /> Saving...
+              </>
+            ) : (
+              "💾 Save"
+            )}
+          </motion.button>
+        </div>
+
+        <AnimatePresence>
+          {message && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`text-center text-sm sm:text-base py-2 font-medium ${message.startsWith("✅") ? "text-green-400" : "text-red-400"
+                }`}
+            >
+              {message}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </header>
 
-      {message && (
-        <p className="text-center text-green-400 font-medium mb-4 bg-white/10 py-2 px-4 rounded-full backdrop-blur-md">
-          {message}
-        </p>
-      )}
+      <main className="flex-grow p-4 sm:p-8">
+        <div className="max-w-6xl mx-auto space-y-12">
+          {/* === FRONT OF HOUSE === */}
+          <RoleSection
+            title="Front of House 🎁"
+            users={groupByRole("FRONT_OF_HOUSE")}
+            localMatches={localMatches}
+            handleChange={handleChange}
+            handleRemoveMatch={handleRemoveMatch}
+          />
 
-      {/* Buttons */}
-      <div className="flex flex-wrap justify-center gap-4 mb-10 z-10">
-        <button
-          onClick={handleGenerateMatches}
-          disabled={loading}
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/20 hover:bg-white/30 border border-white/40 backdrop-blur-md shadow-lg font-semibold transition-all duration-200"
-        >
-          <Shuffle className="w-5 h-5" /> Generate Matches
-        </button>
-        <button
-          onClick={handleSaveMatches}
-          disabled={loading || localMatches.length === 0}
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-green-500/30 hover:bg-green-500/50 border border-white/40 backdrop-blur-md shadow-lg font-semibold transition-all duration-200"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <>
-              <Save className="w-5 h-5" /> Save Matches
-            </>
-          )}
-        </button>
-      </div>
-
-      <RoleSection
-        title="Front of House"
-        roleMatches={localMatches.filter(
-          (m) => m.giver.role === "FRONT_OF_HOUSE"
-        )}
-      />
-      <RoleSection
-        title="Back of House"
-        roleMatches={localMatches.filter(
-          (m) => m.giver.role === "BACK_OF_HOUSE"
-        )}
-      />
+          {/* === BACK OF HOUSE === */}
+          <RoleSection
+            title="Back of House 🍳"
+            users={groupByRole("BACK_OF_HOUSE")}
+            localMatches={localMatches}
+            handleChange={handleChange}
+            handleRemoveMatch={handleRemoveMatch}
+          />
+        </div>
+      </main>
 
       <AdminNavbar />
-    </main>
+    </div>
+  );
+}
+
+/* === Role Section === */
+function RoleSection({ title, users, localMatches, handleChange, handleRemoveMatch }) {
+  const matchedReceiverIds = new Set(Object.values(localMatches).filter(Boolean));
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      viewport={{ once: true }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl sm:text-3xl font-bold text-center drop-shadow-md">{title}</h2>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {users.map((user, idx) => {
+          const selectedReceiverId = localMatches[user.id];
+          const selectedReceiver =
+            users.find((u) => u.id === selectedReceiverId) || null;
+
+          const availableReceivers = users.filter(
+            (u) => u.id !== user.id && !matchedReceiverIds.has(u.id)
+          );
+
+          return (
+            <motion.div
+              key={user.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white/10 backdrop-blur-lg border border-white/20 p-5 rounded-2xl 
+                         shadow-lg flex flex-col items-center text-center 
+                         transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
+            >
+              <img
+                src={user.profilePicture || "/default-profile.png"}
+                alt={user.email}
+                className="w-24 h-24 rounded-full border-2 border-white/30 mb-3 object-cover"
+              />
+              <h3 className="font-semibold text-lg truncate max-w-[220px]">{user.email}</h3>
+
+              {selectedReceiver ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-4 w-full"
+                >
+                  <p className="text-sm opacity-80 mb-2">🎁 Matched with:</p>
+                  <div className="flex flex-col items-center">
+                    <img
+                      src={
+                        selectedReceiver.profilePicture || "/default-profile.png"
+                      }
+                      alt={selectedReceiver.email}
+                      className="w-16 h-16 rounded-full border border-white/40 mb-2 object-cover"
+                    />
+                    <p className="text-sm">{selectedReceiver.email}</p>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleRemoveMatch(user.id)}
+                    className="mt-3 px-3 py-1.5 rounded-full bg-red-500/40 
+                               hover:bg-red-600/60 text-white text-xs font-semibold transition"
+                  >
+                    ❌ Remove
+                  </motion.button>
+                </motion.div>
+              ) : (
+                <div className="mt-4 w-full">
+                  <p className="text-sm opacity-80 mb-2">Select receiver:</p>
+                  <motion.select
+                    whileFocus={{ scale: 1.03 }}
+                    className="w-full p-2 rounded-lg bg-white/20 border border-white/30 text-white text-sm 
+                               focus:ring-2 focus:ring-white/50 outline-none transition-all duration-200"
+                    value={selectedReceiverId || ""}
+                    onChange={(e) => handleChange(user.id, e.target.value || null)}
+                  >
+                    <option value="">— Select —</option>
+                    {availableReceivers.map((receiver) => (
+                      <option key={receiver.id} value={receiver.id}>
+                        {receiver.email}
+                      </option>
+                    ))}
+                  </motion.select>
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.section>
   );
 }

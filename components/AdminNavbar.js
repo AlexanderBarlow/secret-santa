@@ -15,9 +15,9 @@ export default function AdminNavbar() {
 
   const navItems = [
     { href: "/admin/dashboard", icon: faUsers, label: "Users" },
-    { href: "/admin/adduser", icon: faPlus, label: "Event Details" },
-    { href: "/admin/matchsanta", icon: faGift, label: "Match Santa" },
-    { href: "/admin/analytics", icon: faChartSimple, label: "Analytics" },
+    { href: "/admin/adduser", icon: faPlus, label: "Event" },
+    { href: "/admin/matchsanta", icon: faGift, label: "Match" },
+    { href: "/admin/analytics", icon: faChartSimple, label: "Stats" },
   ];
 
   const handleLogout = async () => {
@@ -33,13 +33,13 @@ export default function AdminNavbar() {
   };
 
   return (
-    <div className="fixed bottom-5 left-0 right-0 z-50 pointer-events-none">
+    <div className="fixed bottom-4 left-0 right-0 z-50 pointer-events-none">
       <nav
-        className="pointer-events-auto mx-auto w-[92%] sm:w-[85%] md:w-[70%] lg:w-[60%] 
-                   bg-white/40 backdrop-blur-lg border border-white/60 shadow-2xl
-                   rounded-full px-6 py-3 relative overflow-hidden"
+        className="pointer-events-auto mx-auto w-[90%] sm:w-[60%] md:w-[50%] lg:w-[40%]
+                   bg-white/30 backdrop-blur-lg border border-white/40 shadow-xl
+                   rounded-full px-4 py-2 sm:px-5 sm:py-2.5 flex justify-around items-center"
       >
-        {/* Sliding Glow Indicator */}
+        {/* Animated Glow */}
         <AnimatePresence>
           {navItems.map(
             (item, index) =>
@@ -47,10 +47,10 @@ export default function AdminNavbar() {
                 <motion.div
                   key={item.href}
                   layoutId="nav-glow"
-                  className="absolute top-1/2 -translate-y-1/2 h-10 bg-gradient-to-r from-red-500/30 via-red-400/20 to-transparent rounded-full blur-lg"
+                  className="absolute top-1/2 -translate-y-1/2 h-8 bg-gradient-to-r from-red-500/30 via-red-400/20 to-transparent rounded-full blur-md"
                   style={{
-                    width: `${100 / navItems.length}%`,
-                    left: `${(index / navItems.length) * 100}%`,
+                    width: `${100 / (navItems.length + 1)}%`,
+                    left: `${(index / (navItems.length + 1)) * 100}%`,
                   }}
                   transition={{
                     type: "spring",
@@ -63,36 +63,35 @@ export default function AdminNavbar() {
         </AnimatePresence>
 
         {/* Nav Items */}
-        <div className="flex justify-between items-center w-full max-w-2xl mx-auto text-gray-800 relative z-10">
-          {navItems.map((item) => {
-            const isActive = router.pathname === item.href;
-            return (
-              <Link href={item.href} key={item.href}>
-                <div
-                  className={`flex flex-col items-center transition-all duration-300 ${
-                    isActive
-                      ? "text-red-600 drop-shadow-[0_0_8px_rgba(255,0,0,0.7)]"
-                      : "text-gray-700 hover:text-red-500"
-                  }`}
-                >
-                  <FontAwesomeIcon icon={item.icon} size="lg" />
-                  <span className="text-[0.7rem] font-semibold mt-1">
-                    {item.label}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+        {navItems.map((item) => {
+          const isActive = router.pathname === item.href;
+          return (
+            <Link
+              href={item.href}
+              key={item.href}
+              className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive
+                  ? "text-red-600 drop-shadow-[0_0_8px_rgba(255,0,0,0.7)]"
+                  : "text-gray-800 hover:text-red-500"
+                }`}
+            >
+              <FontAwesomeIcon icon={item.icon} className="text-[1rem]" />
+              <span className="text-[0.65rem] font-medium mt-[2px] hidden sm:block">
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
 
-          {/* Logout Button */}
-          <div
-            onClick={handleLogout}
-            className="flex flex-col items-center cursor-pointer text-gray-700 hover:text-red-600 transition-all duration-300"
-          >
-            <FontAwesomeIcon icon={faSignOutAlt} size="lg" />
-            <span className="text-[0.7rem] font-semibold mt-1">Logout</span>
-          </div>
-        </div>
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center text-gray-800 hover:text-red-600 transition-all duration-300"
+        >
+          <FontAwesomeIcon icon={faSignOutAlt} className="text-[1rem]" />
+          <span className="text-[0.65rem] font-medium mt-[2px] hidden sm:block">
+            Logout
+          </span>
+        </button>
       </nav>
     </div>
   );
