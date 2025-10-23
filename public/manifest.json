@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "portrait",
-  "background_color": "#1a1a40",
-  "theme_color": "#1a1a40",
+  "background_color": "transparent",
+  "theme_color": "transparent",
   "icons": [
     {
       "src": "/candy.jpg",

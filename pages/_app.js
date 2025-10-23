@@ -26,13 +26,11 @@ function App({ Component, pageProps }) {
   return (
     <>
       <Head>
-        {/* Core PWA Meta */}
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#1a1a40" />
+
+        {/* PWA theme */}
+        <meta name="theme-color" content="transparent" /> {/* ✅ transparent status bar on Android */}
 
         {/* Android */}
         <meta name="mobile-web-app-capable" content="yes" />
@@ -40,16 +38,11 @@ function App({ Component, pageProps }) {
 
         {/* iOS */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" /> {/* ✅ transparent notch */}
         <meta name="apple-mobile-web-app-title" content="CFA Secret Santa" />
         <link rel="apple-touch-icon" href="/candy.jpg" />
-
-        {/* Smooth scrolling on iOS standalone mode */}
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </Head>
+
 
       {/* Root layout wrapper */}
       <div className="relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto text-white bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">

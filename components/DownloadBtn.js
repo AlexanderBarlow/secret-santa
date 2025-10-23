@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Download } from "lucide-react";
 
-export default function PWAInstallButton() {
+export default function PWAInstallButton({ theme = "auto" }) {
 	const [installPrompt, setInstallPrompt] = useState(null);
 	const [isInstalled, setIsInstalled] = useState(false);
+	const [isDark, setIsDark] = useState(theme === "dark");
 
+	// Listen for install prompt
 	useEffect(() => {
 		const handleBeforeInstallPrompt = (event) => {
-			event.preventDefault(); // Prevent automatic prompt≈çç≈≈
+			event.preventDefault();
 			setInstallPrompt(event);
 			console.log("✅ PWA install prompt available");
 		};
 
 		window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
 		return () => {
 			window.removeEventListener(
 				"beforeinstallprompt",
@@ -21,15 +24,28 @@ export default function PWAInstallButton() {
 		};
 	}, []);
 
+	// Check if app is installed
 	useEffect(() => {
 		if (window.matchMedia("(display-mode: standalone)").matches) {
 			setIsInstalled(true);
 		}
 	}, []);
 
+	// Auto theme detection
+	useEffect(() => {
+		if (theme === "auto") {
+			const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+			setIsDark(darkQuery.matches);
+			const handleChange = (e) => setIsDark(e.matches);
+			darkQuery.addEventListener("change", handleChange);
+			return () => darkQuery.removeEventListener("change", handleChange);
+		} else {
+			setIsDark(theme === "dark");
+		}
+	}, [theme]);
+
 	const handleInstall = () => {
 		if (!installPrompt) return;
-
 		installPrompt.prompt();
 		installPrompt.userChoice.then((choice) => {
 			setInstallPrompt(null);
@@ -42,15 +58,24 @@ export default function PWAInstallButton() {
 		});
 	};
 
-	if (isInstalled) return null; // Hide if already installed
+	if (isInstalled) return null;
 
 	return (
-		<button
+		<motion.button
 			onClick={handleInstall}
 			disabled={!installPrompt}
-			className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-blue-600 text-white px-5 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-300 hover:bg-blue-700 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
+			initial={{ opacity: 0, y: 40, scale: 0.9 }}
+			animate={{ opacity: 1, y: 0, scale: 1 }}
+			transition={{ duration: 0.4, ease: "easeOut" }}
+			className={`fixed bottom-5 right-5 sm:bottom-6 sm:right-6 px-5 py-3 rounded-full backdrop-blur-md border shadow-lg flex items-center gap-2 font-semibold text-sm sm:text-base active:scale-95 transition-all duration-300
+        ${isDark
+					? "bg-white/10 border-white/20 text-white hover:bg-white/20"
+					: "bg-black/10 border-black/20 text-black hover:bg-black/20"
+				}
+        disabled:opacity-50 disabled:cursor-not-allowed`}
 		>
-			📲 Install App
-		</button>
+			<Download size={18} />
+			<span>Install App</span>
+		</motion.button>
 	);
 }

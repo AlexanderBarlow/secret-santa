@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
@@ -6,6 +7,7 @@ import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/languageswitcher";
 import DownloadBtn from "../../components/DownloadBtn";
+import { motion } from "framer-motion";
 
 export default function SignIn() {
   const { t } = useTranslation();
@@ -18,62 +20,46 @@ export default function SignIn() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (token && isValidToken === null) {
       try {
         const decodedToken = jwtDecode(token);
-
         if (decodedToken.exp * 1000 < Date.now()) {
           localStorage.removeItem("token");
           setIsValidToken(false);
           return;
         }
 
-        if (decodedToken.isAdmin) {
-          setIsValidToken(true);
-          router.push("/admin/dashboard");
-        } else {
-          setIsValidToken(true);
-          router.push("/userdash");
-        }
+        if (decodedToken.isAdmin) router.push("/admin/dashboard");
+        else router.push("/userdash");
+        setIsValidToken(true);
       } catch (err) {
         console.error("Invalid token:", err);
         localStorage.removeItem("token");
         setIsValidToken(false);
       }
-    } else if (isValidToken === null) {
-      setIsValidToken(false);
-    }
-  }, [isValidToken]);
+    } else if (isValidToken === null) setIsValidToken(false);
+  }, [isValidToken, router]);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const response = await axios.post("/api/auth/signin", {
-        email,
-        password,
-      });
-
-      if (response.data && response.data.token) {
-        const { token } = response.data;
-        localStorage.setItem("token", token);
-
-        const decodedToken = jwtDecode(token);
-        if (decodedToken.isAdmin) router.push("/admin/dashboard");
-        else router.push("/userdash");
-      } else {
-        setError(t("invalid_credentials"));
-      }
+      const res = await axios.post("/api/auth/signin", { email, password });
+      const { token } = res.data;
+      if (!token) throw new Error("Invalid token");
+      localStorage.setItem("token", token);
+      const decodedToken = jwtDecode(token);
+      decodedToken.isAdmin
+        ? router.push("/admin/dashboard")
+        : router.push("/userdash");
     } catch (err) {
-      if (err.response) {
-        if (err.response.status === 401) setError(t("invalid_credentials"));
-        else if (err.response.status === 500) setError(t("server_error"));
-        else setError(t("unexpected_error"));
-      } else {
-        setError(t("network_error"));
-      }
+      setError(
+        err.response?.status === 401
+          ? t("invalid_credentials")
+          : err.response?.status === 500
+            ? t("server_error")
+            : t("network_error")
+      );
     } finally {
       setLoading(false);
     }
@@ -82,27 +68,41 @@ export default function SignIn() {
   const navigateToCreateAccount = () => router.push("/auth/signup");
 
   return (
-    <div className="relative flex flex-col items-center min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#ffffff] to-[#e8edf5] pt-10 pb-12 px-4">
-      {/* Language Switcher (Light Mode) */}
-      <LanguageSwitcher theme="light" />
+    <div className="relative flex flex-col items-center justify-center min-h-[100dvh] w-full bg-gradient-to-br from-[#f9fafb] via-[#ffffff] to-[#eaf0fa] text-gray-900 overflow-hidden">
+      {/* Subtle background ornaments */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-400/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
+      </div>
 
-      {/* Optional PWA Download Button */}
-      <div className="absolute top-3 left-3 z-50">
+      {/* Language + PWA */}
+      <div className="absolute top-3 right-3 flex gap-3 z-50">
+        <LanguageSwitcher theme="light" />
         <DownloadBtn />
       </div>
 
       {/* Logo */}
-      <div className="flex justify-center mt-4 mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex justify-center mb-6 mt-6"
+      >
         <Image src="/logo.png" alt="Chick-fil-A Logo" width={180} height={70} />
-      </div>
+      </motion.div>
 
-      {/* Frosted Sign-In Card */}
-      <div className="w-full max-w-md p-8 bg-white/70 backdrop-blur-lg border border-white/40 rounded-2xl shadow-2xl">
-        <h1 className="text-3xl font-semibold text-center mb-6 text-gray-900 drop-shadow-sm">
+      {/* Sign-in Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 25 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative w-[90%] sm:w-[400px] p-8 rounded-3xl bg-white/60 backdrop-blur-2xl border border-white/30 shadow-[0_8px_30px_rgba(0,0,0,0.12)] z-10"
+      >
+        <h1 className="text-3xl font-semibold text-center mb-6 text-gray-900">
           {t("Sign In")}
         </h1>
 
-        <form onSubmit={handleSignIn} className="space-y-6">
+        <form onSubmit={handleSignIn} className="space-y-5">
           <div>
             <label
               htmlFor="email"
@@ -111,12 +111,12 @@ export default function SignIn() {
               {t("Full Name")}
             </label>
             <input
-              type="text"
               id="email"
+              type="text"
               placeholder={t("John Doe")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 p-3 w-full border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
+              className="mt-2 w-full p-3 rounded-lg border border-gray-300 bg-white/70 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
               required
             />
           </div>
@@ -129,12 +129,12 @@ export default function SignIn() {
               {t("Password")}
             </label>
             <input
-              type="password"
               id="password"
+              type="password"
               placeholder={t("••••••••")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 p-3 w-full border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
+              className="mt-2 w-full p-3 rounded-lg border border-gray-300 bg-white/70 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
               required
             />
           </div>
@@ -144,20 +144,22 @@ export default function SignIn() {
               {error}
             </p>
           )}
-
           {loading && (
-            <p className="text-center text-gray-700">{t("loading_sign_in")}</p>
+            <p className="text-center text-gray-600">{t("loading_sign_in")}</p>
           )}
 
-          <button
+          {/* Frosted Sign In Button */}
+          <motion.button
+            whileHover={{ scale: 1.03, backgroundColor: "#dc2626" }}
+            whileTap={{ scale: 0.97 }}
             type="submit"
-            className="w-full py-3 mt-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-md shadow-md hover:from-red-600 hover:to-red-700 transition-all duration-200 font-semibold"
+            className="w-full py-3 rounded-full font-semibold bg-gradient-to-r from-red-500/80 to-red-600/80 text-white shadow-lg backdrop-blur-md border border-white/20 hover:shadow-xl transition"
           >
             {t("SIGN IN")}
-          </button>
+          </motion.button>
         </form>
 
-        <p className="text-center mt-5 text-gray-700 text-sm">
+        <p className="text-center mt-6 text-sm text-gray-700">
           {t("New User")}{" "}
           <span
             onClick={navigateToCreateAccount}
@@ -166,7 +168,7 @@ export default function SignIn() {
             {t("Sign Up Here")}
           </span>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
