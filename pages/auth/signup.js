@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import Link from "next/link";
@@ -15,9 +15,16 @@ export default function SignUp() {
 	const [selectedProfile, setSelectedProfile] = useState(null);
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
+	const [isClient, setIsClient] = useState(false); // ✅ Detect client-side
+
 	const router = useRouter();
 
 	const profileImages = ["/cow1.jpg", "/cow2.jpg", "/cow3.jpg"];
+
+	useEffect(() => {
+		// Runs only on client
+		setIsClient(true);
+	}, []);
 
 	const handleSignUp = async (e) => {
 		e.preventDefault();
@@ -56,29 +63,31 @@ export default function SignUp() {
 
 	return (
 		<div className="relative flex items-center justify-center min-h-screen bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white overflow-hidden">
-			{/* ❄️ Snow effect */}
-			<div className="absolute inset-0 pointer-events-none overflow-hidden">
-				{[...Array(25)].map((_, i) => (
-					<motion.span
-						key={i}
-						className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50 blur-[1px]"
-						initial={{ y: -10, x: Math.random() * window.innerWidth }}
-						animate={{
-							y: "110vh",
-							x: `+=${(Math.random() - 0.5) * 50}`,
-							opacity: [0.8, 0.3, 0.8],
-						}}
-						transition={{
-							duration: 10 + Math.random() * 8,
-							repeat: Infinity,
-							ease: "linear",
-							delay: Math.random() * 4,
-						}}
-					/>
-				))}
-			</div>
+			{/* ❄️ Render snow only on client to prevent SSR crash */}
+			{isClient && (
+				<div className="absolute inset-0 pointer-events-none overflow-hidden">
+					{[...Array(25)].map((_, i) => (
+						<motion.span
+							key={i}
+							className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50 blur-[1px]"
+							initial={{ y: -10, x: Math.random() * window.innerWidth }}
+							animate={{
+								y: "110vh",
+								x: `+=${(Math.random() - 0.5) * 50}`,
+								opacity: [0.8, 0.3, 0.8],
+							}}
+							transition={{
+								duration: 10 + Math.random() * 8,
+								repeat: Infinity,
+								ease: "linear",
+								delay: Math.random() * 4,
+							}}
+						/>
+					))}
+				</div>
+			)}
 
-			{/* 🎄 Card */}
+			{/* 🎄 Sign-up Card */}
 			<motion.div
 				initial={{ opacity: 0, scale: 0.95, y: 20 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -93,7 +102,7 @@ export default function SignUp() {
 					<p className="text-red-400 text-center font-medium mb-4">{error}</p>
 				)}
 
-				{/* Profile selection */}
+				{/* Profile Selection */}
 				<div className="mb-6 text-center">
 					<h2 className="font-semibold mb-3 text-white/90">
 						Choose Your Profile Picture
@@ -166,7 +175,7 @@ export default function SignUp() {
 						/>
 					</div>
 
-					{/* Role selection */}
+					{/* Role Selection */}
 					<div>
 						<label className="block text-sm font-semibold mb-2 text-white/90">
 							Select Your Role
