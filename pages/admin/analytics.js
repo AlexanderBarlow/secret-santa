@@ -31,14 +31,12 @@ const COLORS = [
   "#ef4444",
   "#e879f9",
 ];
-const sum = (arr) => arr.reduce((a, b) => a + b, 0);
-const fmtDate = (iso) => new Date(iso).toLocaleDateString();
 
 /* ---------- Radial KPI ---------- */
 function RadialKpi({ label, value, color, sub, threshold = 100 }) {
   const pct = Number(value) || 0;
   const complete = pct >= threshold;
-  if (complete) confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+  if (complete) confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
 
   return (
     <motion.div whileHover={{ scale: 1.05 }} className="text-center">
@@ -128,19 +126,17 @@ export default function AdminAnalytics() {
     : 0;
 
   const wishlistCompletion = useMemo(() => {
-    if (!wishlists || !wishlists.summary) return 0;
+    if (!wishlists?.summary) return 0;
     return wishlists.summary.completionRate || 0;
   }, [wishlists]);
 
-
- const topItems = useMemo(() => {
-   if (!wishlists?.topItems?.length) return [];
-   return wishlists.topItems.map((t) => ({
-     name: t.item,
-     count: t.count,
-   }));
- }, [wishlists]);
-
+  const topItems = useMemo(() => {
+    if (!wishlists?.topItems?.length) return [];
+    return wishlists.topItems.map((t) => ({
+      name: t.item,
+      count: t.count,
+    }));
+  }, [wishlists]);
 
   const leaderboard = [
     { role: "Front of House", value: foh },
@@ -202,13 +198,13 @@ export default function AdminAnalytics() {
             />
             <RadialKpi
               label="Wishlist Completion"
-              value={wishlistCompletion ?? 0}
+              value={wishlistCompletion}
               color="#f59e0b"
               sub={wishlists ? `${wishlistCompletion}%` : "No data"}
             />
             <RadialKpi
               label="Accepted / Total"
-              value={totalUsers ? Math.round((accepted / totalUsers) * 100) : 0}
+              value={acceptedPct}
               color="#3b82f6"
               sub={`${accepted} / ${totalUsers}`}
             />
@@ -263,19 +259,19 @@ export default function AdminAnalytics() {
                   <Legend />
                   <Area
                     type="monotone"
-                    dataKey="signup"
+                    dataKey="signups"
                     stroke="#60a5fa"
                     fill="url(#gradSignup)"
                   />
                   <Area
                     type="monotone"
-                    dataKey="match"
+                    dataKey="matches"
                     stroke="#a78bfa"
                     fill="url(#gradMatch)"
                   />
                   <Area
                     type="monotone"
-                    dataKey="wishlist"
+                    dataKey="wishlists"
                     stroke="#f59e0b"
                     fill="url(#gradWishlist)"
                   />
@@ -296,11 +292,7 @@ export default function AdminAnalytics() {
                     <XAxis dataKey="role" />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Bar
-                      dataKey="value"
-                      radius={[6, 6, 0, 0]}
-                      isAnimationActive
-                    >
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                       {leaderboard.map((entry, idx) => (
                         <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                       ))}
@@ -314,7 +306,7 @@ export default function AdminAnalytics() {
               <div className="font-semibold mb-3 flex items-center gap-2">
                 <Gift className="w-4 h-4" /> Top Wishlist Items
               </div>
-              {!Array.isArray(wishlists) ? (
+              {!wishlists ? (
                 <EmptyState>No wishlist data yet.</EmptyState>
               ) : topItems.length === 0 ? (
                 <EmptyState>No items yet.</EmptyState>
@@ -327,9 +319,7 @@ export default function AdminAnalytics() {
                       animate={{ scale: 1 }}
                       transition={{ delay: i * 0.1 }}
                       className="px-3 py-1.5 rounded-full text-sm border border-white/20 shadow-sm"
-                      style={{
-                        background: `${COLORS[i % COLORS.length]}33`,
-                      }}
+                      style={{ background: `${COLORS[i % COLORS.length]}33` }}
                     >
                       {it.name} <span className="opacity-70">×{it.count}</span>
                     </motion.span>
@@ -339,7 +329,7 @@ export default function AdminAnalytics() {
             </div>
           </div>
 
-          {/* Activity Pulse */}
+          {/* Live Participation Pulse */}
           <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
             <div className="font-semibold mb-3 flex items-center gap-2">
               <Users className="w-4 h-4" /> Live Participation Pulse
@@ -361,9 +351,9 @@ export default function AdminAnalytics() {
             )}
             {actSummary && (
               <p className="mt-4 text-sm text-white/70">
-                {actSummary.totalSignups} signups · {actSummary.totalMatches}{" "}
-                matches · {actSummary.totalWishlists} wishlist updates (past 7
-                days)
+                {actSummary.totalSignups ?? 0} signups ·{" "}
+                {actSummary.totalMatches ?? 0} matches ·{" "}
+                {actSummary.totalWishlists ?? 0} wishlist updates (past 7 days)
               </p>
             )}
           </div>
