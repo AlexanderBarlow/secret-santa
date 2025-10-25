@@ -385,7 +385,7 @@ export default function UserDashboard() {
         onClick={handleLogout}
         label="Logout"
         icon={<LogOut className="w-5 h-5" />}
-        className="fixed bottom-6 right-6 z-[60] cursor-pointer"
+        className="fixed right-6 bottom-[110px] sm:bottom-6 z-[60] cursor-pointer"
       />
 
       {/* Snow Animation */}
