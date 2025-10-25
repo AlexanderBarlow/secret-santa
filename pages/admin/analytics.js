@@ -218,14 +218,14 @@ export default function AdminAnalytics() {
             />
           </div>
 
-          {/* Activity Trend (with glow + pulse) */}
+          {/* Activity Trend (with glowing wishlist line) */}
           <motion.div
-            className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl relative overflow-hidden"
+            className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl"
             animate={{
               boxShadow: [
-                "0 0 20px rgba(245,158,11,0.1)",
-                "0 0 30px rgba(245,158,11,0.2)",
-                "0 0 20px rgba(245,158,11,0.1)",
+                "0 0 20px rgba(245,158,11,0.15)",
+                "0 0 30px rgba(245,158,11,0.3)",
+                "0 0 20px rgba(245,158,11,0.15)",
               ],
             }}
             transition={{ repeat: Infinity, duration: 6 }}
@@ -300,12 +300,93 @@ export default function AdminAnalytics() {
                     fill="url(#gradWishlist)"
                     strokeWidth={3}
                     strokeDasharray="4 2"
-                    animationDuration={1000}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             )}
           </motion.div>
+
+          {/* Role Participation + Top Wishlist Items */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Role Participation */}
+            <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+              <div className="font-semibold mb-3">Role Participation</div>
+              {!totalUsers ? (
+                <EmptyState>No users yet.</EmptyState>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={leaderboard}>
+                    <XAxis dataKey="role" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {leaderboard.map((entry, idx) => (
+                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Top Wishlist Items */}
+            <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+              <div className="font-semibold mb-3 flex items-center gap-2">
+                <Gift className="w-4 h-4" /> Top Wishlist Items
+              </div>
+              {!Array.isArray(wishlists) ? (
+                <EmptyState>No wishlist data yet.</EmptyState>
+              ) : topItems.length === 0 ? (
+                <EmptyState>No items yet.</EmptyState>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {topItems.map((it, i) => (
+                    <motion.span
+                      key={it.name + i}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="px-3 py-1.5 rounded-full text-sm border border-white/20 shadow-sm"
+                      style={{
+                        background: `${COLORS[i % COLORS.length]}33`,
+                      }}
+                    >
+                      {it.name} <span className="opacity-70">×{it.count}</span>
+                    </motion.span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Live Participation Pulse */}
+          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+            <div className="font-semibold mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4" /> Live Participation Pulse
+            </div>
+            {!activityData.length ? (
+              <EmptyState>No activity yet.</EmptyState>
+            ) : (
+              <div className="flex gap-4 mt-2">
+                {["#60a5fa", "#a78bfa", "#f59e0b"].map((color, idx) => (
+                  <motion.div
+                    key={idx}
+                    animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 + idx }}
+                    className="w-4 h-4 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.6)]"
+                    style={{ background: color }}
+                  />
+                ))}
+              </div>
+            )}
+            {actSummary && (
+              <p className="mt-4 text-sm text-white/70">
+                {actSummary.totalSignups} signups · {actSummary.totalMatches}{" "}
+                matches · {actSummary.totalWishlists} wishlist updates (past 7
+                days)
+              </p>
+            )}
+          </div>
         </div>
       </main>
 
