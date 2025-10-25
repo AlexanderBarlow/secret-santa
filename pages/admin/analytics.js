@@ -128,26 +128,19 @@ export default function AdminAnalytics() {
     : 0;
 
   const wishlistCompletion = useMemo(() => {
-    if (!Array.isArray(wishlists) || totalUsers === 0) return null;
-    const withItems = wishlists.filter((w) => w.items.length > 0).length;
-    return Math.round((withItems / totalUsers) * 100);
-  }, [wishlists, totalUsers]);
-
-  const topItems = useMemo(() => {
-    if (!Array.isArray(wishlists)) return [];
-    const counter = new Map();
-    wishlists.forEach((w) =>
-      (w.items || []).forEach((i) => {
-        const key = i.item.trim();
-        if (!key) return;
-        counter.set(key, (counter.get(key) || 0) + 1);
-      })
-    );
-    return Array.from(counter.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
+    if (!wishlists || !wishlists.summary) return 0;
+    return wishlists.summary.completionRate || 0;
   }, [wishlists]);
+
+
+ const topItems = useMemo(() => {
+   if (!wishlists?.topItems?.length) return [];
+   return wishlists.topItems.map((t) => ({
+     name: t.item,
+     count: t.count,
+   }));
+ }, [wishlists]);
+
 
   const leaderboard = [
     { role: "Front of House", value: foh },
@@ -214,10 +207,10 @@ export default function AdminAnalytics() {
               sub={wishlists ? `${wishlistCompletion}%` : "No data"}
             />
             <RadialKpi
-              label="Total Users"
-              value={totalUsers}
-              color="#60a5fa"
-              sub="Total Participants"
+              label="Accepted / Total"
+              value={totalUsers ? Math.round((accepted / totalUsers) * 100) : 0}
+              color="#3b82f6"
+              sub={`${accepted} / ${totalUsers}`}
             />
           </div>
 

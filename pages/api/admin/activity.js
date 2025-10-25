@@ -1,94 +1,63 @@
-import prisma from "../../../lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 
-export default async function handler(req, res) {
-  // --- Verify admin access ---
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "Unauthorized - No token provided" });
-  }
+const prisma = new PrismaClient();
 
+export default async function handler(req, res) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "No token" });
   const token = authHeader.split(" ")[1];
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded.isAdmin) {
-      return res
-        .status(403)
-        .json({ error: "Forbidden - Admin access required" });
-    }
+    if (!decoded.isAdmin) return res.status(403).json({ error: "Forbidden" });
   } catch {
-    return res.status(401).json({ error: "Invalid or expired token" });
+    return res.status(401).json({ error: "Invalid token" });
   }
 
-  // --- Fetch real events ---
   try {
-    const now = new Date();
-    const weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    // Users created in the last 7 days
-    const newUsers = await prisma.user.findMany({
-      where: { createdAt: { gte: weekAgo } },
-      select: { id: true, createdAt: true, role: true },
+    // last 7 days of activity
+    const users = await prisma.user.findMany({
+      select: { createdAt: true, matchedSantaId: true },
     });
 
-    // Users matched in the last 7 days (matchedSantaId not null)
-    const matchedUsers = await prisma.user.findMany({
-      where: {
-        matchedSantaId: { not: null },
-        updatedAt: { gte: weekAgo },
-      },
-      select: { id: true, updatedAt: true },
+    const wishlists = await prisma.wishlist.findMany({
+      select: { updatedAt: true, items: true },
     });
 
-    // Wishlists updated in the last 7 days
-    const wishlistUpdates = await prisma.wishlist.findMany({
-      where: { updatedAt: { gte: weekAgo } },
-      include: {
-        user: { select: { id: true, role: true } },
-      },
+    // build simple 7-day activity array
+    const today = new Date();
+    const days = [...Array(7)].map((_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (6 - i));
+      const dateStr = d.toISOString().split("T")[0];
+      return { date: dateStr, signup: 0, match: 0, wishlist: 0 };
     });
 
-    const activityEvents = [
-      ...newUsers.map((u) => ({
-        type: "signup",
-        role: u.role,
-        date: u.createdAt,
-      })),
-      ...matchedUsers.map((u) => ({
-        type: "match",
-        date: u.updatedAt,
-      })),
-      ...wishlistUpdates.map((w) => ({
-        type: "wishlist",
-        role: w.user.role,
-        date: w.updatedAt,
-      })),
-    ];
-
-    // --- Group by day + type ---
-    const grouped = {};
-    activityEvents.forEach((e) => {
-      const key = new Date(e.date).toISOString().slice(0, 10);
-      if (!grouped[key])
-        grouped[key] = { date: key, signup: 0, match: 0, wishlist: 0 };
-      grouped[key][e.type] += 1;
+    users.forEach((u) => {
+      const day = days.find((d) =>
+        u.createdAt.toISOString().startsWith(d.date)
+      );
+      if (day) day.signup++;
+      if (u.matchedSantaId) day.match++;
     });
 
-    const data = Object.values(grouped).sort((a, b) =>
-      a.date > b.date ? 1 : -1
-    );
-
-    return res.status(200).json({
-      summary: {
-        totalSignups: newUsers.length,
-        totalMatches: matchedUsers.length,
-        totalWishlists: wishlistUpdates.length,
-      },
-      activity: data,
+    wishlists.forEach((w) => {
+      const day = days.find((d) =>
+        w.updatedAt.toISOString().startsWith(d.date)
+      );
+      if (day && w.items.length) day.wishlist++;
     });
+
+    const summary = {
+      totalSignups: users.length,
+      totalMatches: users.filter((u) => u.matchedSantaId).length,
+      totalWishlists: wishlists.filter((w) => w.items.length).length,
+    };
+
+    res.status(200).json({ activity: days, summary });
   } catch (error) {
-    console.error("Error fetching activity:", error);
-    return res.status(500).json({ error: "Failed to fetch activity data" });
+    console.error("Error generating activity:", error);
+    res.status(500).json({ error: "Failed to fetch activity data" });
   }
 }
