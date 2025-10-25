@@ -14,14 +14,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch users + wishlists
     const [users, wishlists] = await Promise.all([
       prisma.user.findMany({
-        select: {
-          id: true,
-          createdAt: true,
-          matchedSantaId: true,
-        },
+        select: { id: true, createdAt: true, matchedSantaId: true },
       }),
       prisma.wishlist.findMany({
         include: { items: true },
@@ -43,42 +38,32 @@ export default async function handler(req, res) {
       };
     });
 
-    // Track signups + matches
-    users.forEach((user) => {
+    // Signups + matches
+    for (const user of users) {
       const dateStr = user.createdAt.toISOString().split("T")[0];
       const entry = last14Days.find((d) => d.date === dateStr);
       if (entry) {
         entry.signup += 1;
         if (user.matchedSantaId) entry.match += 1;
       }
-    });
+    }
 
-    // Track wishlist creation/update
-    wishlists.forEach((w) => {
-      if (!w.items.length) return;
+    // Wishlist creation/update — any wishlist counts as wishlist activity
+    for (const w of wishlists) {
       const dateStr =
         w.updatedAt?.toISOString().split("T")[0] ||
-        w.createdAt?.toISOString().split("T")[0];
+        w.createdAt.toISOString().split("T")[0];
       const entry = last14Days.find((d) => d.date === dateStr);
       if (entry) entry.wishlist += 1;
-    });
-
-    // Compute totals
-    const totalSignups = users.length;
-    const totalMatches = users.filter((u) => u.matchedSantaId).length;
-    const totalWishlists = wishlists.filter((w) => w.items.length > 0).length;
+    }
 
     const summary = {
-      totalSignups,
-      totalMatches,
-      totalWishlists,
+      totalSignups: users.length,
+      totalMatches: users.filter((u) => u.matchedSantaId).length,
+      totalWishlists: wishlists.length,
     };
 
-    // ✅ Return consistent structure expected by frontend
-    return res.status(200).json({
-      activity: last14Days,
-      summary,
-    });
+    res.status(200).json({ activity: last14Days, summary });
   } catch (error) {
     console.error("❌ Error building activity data:", error);
     res.status(500).json({ error: "Failed to fetch activity data" });
