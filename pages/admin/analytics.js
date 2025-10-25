@@ -14,110 +14,108 @@ import {
   Legend,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
   Cell,
 } from "recharts";
-import { Loader2, RefreshCcw, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  RefreshCcw,
+  Sparkles,
+  AlertCircle,
+  Award,
+  Users,
+  Gift,
+} from "lucide-react";
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+import confetti from "canvas-confetti";
 
-/** ---------------- Helpers ---------------- **/
+/* ---------------- Helpers ---------------- */
 const COLORS = [
-  "#22c55e",
   "#60a5fa",
-  "#f59e0b",
-  "#ef4444",
   "#a78bfa",
-  "#10b981",
+  "#f59e0b",
+  "#22c55e",
+  "#ef4444",
   "#e879f9",
 ];
 const fmtDate = (iso) => new Date(iso).toLocaleDateString();
+const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
-/** Group by date (YYYY-MM-DD) */
-const byDay = (items, getterISO) => {
-  const map = new Map();
-  items.forEach((it) => {
-    const d = new Date(getterISO(it));
+function byDayRole(users) {
+  const map = {};
+  users.forEach((u) => {
+    const d = new Date(u.createdAt);
     const key = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
       .toISOString()
       .slice(0, 10);
-    map.set(key, (map.get(key) || 0) + 1);
+    if (!map[key]) map[key] = { date: key, FOH: 0, BOH: 0 };
+    if (u.role === "FRONT_OF_HOUSE") map[key].FOH++;
+    else map[key].BOH++;
   });
-  return Array.from(map.entries())
-    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-    .map(([date, count]) => ({ date, count }));
-};
+  return Object.values(map).sort((a, b) => (a.date < b.date ? -1 : 1));
+}
 
-const sum = (arr) => arr.reduce((a, b) => a + b, 0);
-
-/** ---------------- KPI Card ---------------- **/
-function KpiCard({ label, value, sub, color = "#60a5fa" }) {
+/* ---------------- KPI Card ---------------- */
+function RadialKpi({ label, value, color, threshold = 100, sub }) {
+  const percentage = Number(value) || 0;
+  const complete = percentage >= threshold;
+  if (complete) {
+    confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+  }
   return (
-    <motion.div whileHover={{ y: -3 }} className="w-full">
-      <div
-        className="rounded-2xl p-4 sm:p-5 border border-white/20 shadow-lg text-white"
-        style={{
-          background: `linear-gradient(135deg, ${color}33, rgba(255,255,255,0.08))`,
-          backdropFilter: "blur(16px)",
-        }}
-      >
-        <div className="text-sm opacity-80">{label}</div>
-        <div className="mt-1 text-3xl sm:text-4xl font-extrabold">{value}</div>
-        {sub ? <div className="mt-1 text-xs opacity-80">{sub}</div> : null}
+    <motion.div whileHover={{ scale: 1.05 }} className="text-center">
+      <div className="flex justify-center mb-2">
+        <div style={{ width: 90, height: 90 }}>
+          <CircularProgressbar
+            value={percentage}
+            text={`${percentage}%`}
+            styles={buildStyles({
+              pathColor: complete ? "#22c55e" : color,
+              textColor: "#fff",
+              trailColor: "rgba(255,255,255,0.1)",
+            })}
+          />
+        </div>
       </div>
+      <div className="font-semibold text-sm">{label}</div>
+      {sub && <div className="text-xs opacity-70">{sub}</div>}
     </motion.div>
   );
 }
 
-/** ---------------- Empty State ---------------- **/
-function EmptyState({ icon = <AlertCircle className="w-4 h-4" />, children }) {
+/* ---------------- Empty State ---------------- */
+function EmptyState({ children }) {
   return (
-    <div className="w-full rounded-2xl p-4 sm:p-5 border border-white/20 bg-white/10 text-white/80 text-sm flex items-center gap-2">
-      {icon}
+    <div className="w-full rounded-2xl p-4 border border-white/20 bg-white/10 text-white/80 text-sm flex items-center gap-2">
+      <AlertCircle className="w-4 h-4" />
       <span>{children}</span>
     </div>
   );
 }
 
-/** ---------------- Main Page ---------------- **/
+/* ---------------- Main Component ---------------- */
 export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState([]);
-  const [wishlists, setWishlists] = useState(null); // null = not loaded/doesn't exist, [] = loaded empty
+  const [wishlists, setWishlists] = useState(null);
   const [error, setError] = useState("");
 
+  /* ---------- Fetch ---------- */
   const fetchAll = async () => {
-    setError("");
     try {
-      // token optional; include if you gate APIs
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const auth = token
-        ? { headers: { Authorization: `Bearer ${token}` } }
-        : undefined;
-
+      setError("");
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
       const [usersRes, wlRes] = await Promise.allSettled([
-        axios.get("/api/admin/users", auth),
-        axios.get("/api/admin/wishlists", auth), // if you don't have this route yet, UI will fall back gracefully
+        axios.get("/api/admin/users", { headers }),
+        axios.get("/api/admin/wishlists", { headers }),
       ]);
-
-      if (
-        usersRes.status === "fulfilled" &&
-        Array.isArray(usersRes.value.data)
-      ) {
-        setUsers(usersRes.value.data);
-      } else {
-        setUsers([]);
-      }
-
-      if (wlRes.status === "fulfilled") {
-        // Expecting: [{ userId, items: [{id, item}, ...] }, ...]
-        setWishlists(Array.isArray(wlRes.value.data) ? wlRes.value.data : []);
-      } else {
-        setWishlists(null); // endpoint missing → show empty state for wishlist-based widgets
-      }
-    } catch (e) {
-      setError("Failed to load analytics. Please try again.");
+      if (usersRes.status === "fulfilled") setUsers(usersRes.value.data);
+      if (wlRes.status === "fulfilled") setWishlists(wlRes.value.data);
+      else setWishlists(null);
+    } catch {
+      setError("Failed to load analytics data.");
       setUsers([]);
       setWishlists(null);
     } finally {
@@ -135,71 +133,59 @@ export default function AdminAnalytics() {
     setRefreshing(false);
   };
 
-  /** ---------------- Derived Metrics ---------------- **/
+  /* ---------- Derived Metrics ---------- */
   const totalUsers = users.length;
-  const acceptedCount = users.filter((u) => u.Accepted).length;
-  const matchedCount = users.filter((u) => u.matchedSantaId != null).length;
+  const accepted = users.filter((u) => u.Accepted).length;
+  const matched = users.filter((u) => u.matchedSantaId != null).length;
   const foh = users.filter((u) => u.role === "FRONT_OF_HOUSE").length;
   const boh = users.filter((u) => u.role === "BACK_OF_HOUSE").length;
+  const matchedPct = totalUsers ? Math.round((matched / totalUsers) * 100) : 0;
+  const acceptedPct = totalUsers
+    ? Math.round((accepted / totalUsers) * 100)
+    : 0;
 
-  // Signup trend
-  const signupsPerDay = useMemo(
-    () => byDay(users, (u) => u.createdAt),
-    [users]
-  );
-
-  // Wishlist metrics (if endpoint exists)
-  const wishlistUsers = useMemo(() => {
-    if (!Array.isArray(wishlists)) return [];
-    return wishlists;
-  }, [wishlists]);
+  const signupsByRole = useMemo(() => byDayRole(users), [users]);
 
   const wishlistCompletion = useMemo(() => {
     if (!Array.isArray(wishlists) || totalUsers === 0) return null;
-    const withItems = wishlists.filter(
-      (w) => Array.isArray(w.items) && w.items.length > 0
-    ).length;
+    const withItems = wishlists.filter((w) => w.items.length > 0).length;
     return Math.round((withItems / totalUsers) * 100);
   }, [wishlists, totalUsers]);
 
-  const avgWishlistItems = useMemo(() => {
-    if (!Array.isArray(wishlists) || wishlists.length === 0) return null;
-    const counts = wishlists.map((w) =>
-      Array.isArray(w.items) ? w.items.length : 0
-    );
-    return (sum(counts) / Math.max(counts.length, 1)).toFixed(2);
-  }, [wishlists]);
-
-  const topWishlistItems = useMemo(() => {
-    if (!Array.isArray(wishlists) || wishlists.length === 0) return [];
+  const topItems = useMemo(() => {
+    if (!Array.isArray(wishlists)) return [];
     const counter = new Map();
     wishlists.forEach((w) =>
-      (w.items || []).forEach((it) => {
-        const key = (it.item || "").trim();
+      (w.items || []).forEach((i) => {
+        const key = i.item.trim();
         if (!key) return;
         counter.set(key, (counter.get(key) || 0) + 1);
       })
     );
-    const arr = Array.from(counter.entries()).map(([name, count]) => ({
-      name,
-      count,
-    }));
-    return arr.sort((a, b) => b.count - a.count).slice(0, 7);
+    return Array.from(counter.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
   }, [wishlists]);
 
-  /** ---------------- UI ---------------- **/
+  const leaderboard = [
+    { role: "Front of House", value: foh },
+    { role: "Back of House", value: boh },
+  ];
+
+  /* ---------- UI ---------- */
   return (
-    <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white overflow-hidden">
+    <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-[#0b1437] via-[#122359] to-[#1b3f9d] text-white overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/10 border-b border-white/20 shadow-lg">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-5">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
-              🎄 Admin Analytics
+            <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-yellow-400" />
+              Admin Analytics
             </h1>
             <p className="text-white/80 text-sm mt-1">
-              Real-time insights into participation, matching, and wishlist
-              activity.
+              Real-time insights into participation, matches, and wishlists.
             </p>
           </div>
           <motion.button
@@ -220,206 +206,166 @@ export default function AdminAnalytics() {
 
       {/* Content */}
       <main className="flex-grow">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6">
-          {/* Errors */}
+        <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
           {error && <EmptyState>{error}</EmptyState>}
 
-          {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
-            <KpiCard
-              label="Total Users"
-              value={loading ? "—" : totalUsers}
-              color="#60a5fa"
-            />
-            <KpiCard
-              label="Accepted %"
-              value={
-                loading || totalUsers === 0
-                  ? "—"
-                  : `${Math.round((acceptedCount / totalUsers) * 100)}%`
-              }
-              sub={`${acceptedCount}/${totalUsers}`}
+          {/* KPI Ring Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <RadialKpi
+              label="Accepted Users"
+              value={acceptedPct}
               color="#22c55e"
+              sub={`${accepted}/${totalUsers}`}
             />
-            <KpiCard
-              label="Matched %"
-              value={
-                loading || totalUsers === 0
-                  ? "—"
-                  : `${Math.round((matchedCount / totalUsers) * 100)}%`
-              }
-              sub={`${matchedCount}/${totalUsers}`}
+            <RadialKpi
+              label="Matched Users"
+              value={matchedPct}
               color="#a78bfa"
+              sub={`${matched}/${totalUsers}`}
             />
-            <KpiCard
+            <RadialKpi
               label="Wishlist Completion"
-              value={
-                loading
-                  ? "—"
-                  : wishlistCompletion == null
-                  ? "No data"
-                  : `${wishlistCompletion}%`
-              }
-              sub={
-                !Array.isArray(wishlists)
-                  ? "Add /api/admin/wishlists to enable"
-                  : undefined
-              }
+              value={wishlistCompletion ?? 0}
               color="#f59e0b"
+              sub={wishlists ? `${wishlistCompletion}%` : "No data"}
+            />
+            <RadialKpi
+              label="Total Users"
+              value={totalUsers}
+              color="#60a5fa"
+              sub="Total Participants"
             />
           </div>
 
-          {/* Role Distribution + Avg Wishlist Items */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Role Pie */}
-            <div className="rounded-2xl p-4 sm:p-5 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-              <div className="mb-3 font-semibold">Role Distribution</div>
-              {loading ? (
-                <EmptyState>Loading users…</EmptyState>
-              ) : totalUsers === 0 ? (
-                <EmptyState>No users yet.</EmptyState>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Front of House", value: foh },
-                        { name: "Back of House", value: boh },
-                      ]}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      blendStroke
-                      stroke="rgba(255,255,255,0.4)"
-                    >
-                      {[foh, boh].map((_, idx) => (
-                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {/* Avg Wishlist + Top Items */}
-            <div className="lg:col-span-2 rounded-2xl p-4 sm:p-5 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-              <div className="mb-3 font-semibold">Wishlists Overview</div>
-              {!Array.isArray(wishlists) ? (
-                <EmptyState>
-                  No wishlist endpoint found. Create{" "}
-                  <code className="opacity-90">/api/admin/wishlists</code>{" "}
-                  returning
-                  <code className="opacity-90">
-                    {" "}
-                    [{`{ userId, items: [{ id, item }] }`}]
-                  </code>{" "}
-                  to enable these metrics.
-                </EmptyState>
-              ) : wishlists.length === 0 ? (
-                <EmptyState>No wishlists have been created yet.</EmptyState>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1">
-                    <KpiCard
-                      label="Average Items per User"
-                      value={avgWishlistItems ?? "—"}
-                      color="#f59e0b"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="rounded-xl p-3 border border-white/20 bg-white/5">
-                      <div className="text-sm opacity-80 mb-2">
-                        Top Wishlist Items
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {topWishlistItems.length === 0 ? (
-                          <span className="text-white/70 text-sm">
-                            No items yet.
-                          </span>
-                        ) : (
-                          topWishlistItems.map((it, idx) => (
-                            <span
-                              key={it.name + idx}
-                              className="px-3 py-1.5 rounded-full text-xs border border-white/20"
-                              style={{
-                                background: `${COLORS[idx % COLORS.length]}22`,
-                              }}
-                            >
-                              {it.name}{" "}
-                              <span className="opacity-70">×{it.count}</span>
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Signup Trend */}
-          <div className="rounded-2xl p-4 sm:p-5 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-            <div className="mb-3 font-semibold">User Sign-ups Over Time</div>
+          {/* Signup Trend by Role */}
+          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-glow">
+            <div className="font-semibold mb-3">Signups by Role Over Time</div>
             {loading ? (
-              <EmptyState>Loading trend…</EmptyState>
-            ) : signupsPerDay.length === 0 ? (
+              <EmptyState>Loading chart…</EmptyState>
+            ) : signupsByRole.length === 0 ? (
               <EmptyState>No signups yet.</EmptyState>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={signupsPerDay}>
-                  <CartesianGrid strokeDasharray="3 3" />
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={signupsByRole}>
+                  <defs>
+                    <linearGradient id="gradFOH" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.9} />
+                      <stop
+                        offset="100%"
+                        stopColor="#60a5fa"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                    <linearGradient id="gradBOH" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.9} />
+                      <stop
+                        offset="100%"
+                        stopColor="#a78bfa"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
                   <Line
-                    type="monotone"
-                    dataKey="count"
-                    name="Signups"
-                    stroke="#60a5fa"
-                    strokeWidth={3}
-                    dot={{ r: 2 }}
-                    activeDot={{ r: 5 }}
+                    dataKey="FOH"
+                    stroke="url(#gradFOH)"
+                    strokeWidth={4}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    dataKey="BOH"
+                    stroke="url(#gradBOH)"
+                    strokeWidth={4}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 6 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* Matches Progress */}
-          <div className="rounded-2xl p-4 sm:p-5 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-            <div className="mb-3 font-semibold">Matching Progress</div>
-            {loading ? (
-              <EmptyState>Loading matches…</EmptyState>
-            ) : totalUsers === 0 ? (
-              <EmptyState>No users yet.</EmptyState>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart
-                  data={[
-                    { name: "Matched", value: matchedCount },
-                    {
-                      name: "Unmatched",
-                      value: Math.max(totalUsers - matchedCount, 0),
-                    },
-                  ]}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                    <Cell fill="#22c55e" />
-                    <Cell fill="#ef4444" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+          {/* Leaderboard + Wishlist Items */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Role Leaderboard */}
+            <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+              <div className="font-semibold mb-3">
+                Role Participation Leaderboard
+              </div>
+              {totalUsers === 0 ? (
+                <EmptyState>No users yet.</EmptyState>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={leaderboard}>
+                    <XAxis dataKey="role" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar
+                      dataKey="value"
+                      radius={[6, 6, 0, 0]}
+                      isAnimationActive
+                    >
+                      {leaderboard.map((entry, idx) => (
+                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Top Wishlist Items */}
+            <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+              <div className="font-semibold mb-3 flex items-center gap-2">
+                <Gift className="w-4 h-4" /> Top Wishlist Items
+              </div>
+              {!Array.isArray(wishlists) ? (
+                <EmptyState>No wishlist data yet.</EmptyState>
+              ) : topItems.length === 0 ? (
+                <EmptyState>No items yet.</EmptyState>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {topItems.map((it, i) => (
+                    <motion.span
+                      key={it.name + i}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="px-3 py-1.5 rounded-full text-sm border border-white/20 shadow-sm"
+                      style={{
+                        background: `${COLORS[i % COLORS.length]}33`,
+                      }}
+                    >
+                      {it.name} <span className="opacity-70">×{it.count}</span>
+                    </motion.span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Activity Pulse */}
+          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+            <div className="font-semibold mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4" /> Live Participation Pulse
+            </div>
+            <div className="flex gap-4 mt-2">
+              {["#60a5fa", "#a78bfa", "#f59e0b", "#22c55e"].map(
+                (color, idx) => (
+                  <motion.div
+                    key={idx}
+                    animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 + idx }}
+                    className="w-4 h-4 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.6)]"
+                    style={{ background: color }}
+                  />
+                )
+              )}
+            </div>
           </div>
         </div>
       </main>
