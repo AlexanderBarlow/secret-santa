@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // === Fetch users and wishlists ===
+    // Fetch users + wishlists
     const [users, wishlists] = await Promise.all([
       prisma.user.findMany({
         select: {
@@ -24,52 +24,46 @@ export default async function handler(req, res) {
         },
       }),
       prisma.wishlist.findMany({
-        select: {
-          id: true,
-          userId: true,
-          createdAt: true,
-          updatedAt: true,
-          items: { select: { id: true } },
-        },
+        include: { items: true },
+        orderBy: { createdAt: "asc" },
       }),
     ]);
 
     const today = new Date();
 
-    // === Initialize 14 days of data ===
+    // Build last 14 days baseline
     const last14Days = Array.from({ length: 14 }, (_, i) => {
       const d = new Date(today);
       d.setDate(today.getDate() - (13 - i));
       return {
         date: d.toISOString().split("T")[0],
-        signups: 0,
-        matches: 0,
-        wishlists: 0,
+        signup: 0,
+        match: 0,
+        wishlist: 0,
       };
     });
 
-    // === Aggregate signups per day ===
+    // Track signups + matches
     users.forEach((user) => {
       const dateStr = user.createdAt.toISOString().split("T")[0];
-      const day = last14Days.find((d) => d.date === dateStr);
-      if (day) day.signups += 1;
-      if (user.matchedSantaId) {
-        const matchDay = last14Days.find((d) => d.date === dateStr);
-        if (matchDay) matchDay.matches += 1;
+      const entry = last14Days.find((d) => d.date === dateStr);
+      if (entry) {
+        entry.signup += 1;
+        if (user.matchedSantaId) entry.match += 1;
       }
     });
 
-    // === Aggregate wishlist creations/updates per day ===
+    // Track wishlist creation/update
     wishlists.forEach((w) => {
       if (!w.items.length) return;
-      const activityDate =
+      const dateStr =
         w.updatedAt?.toISOString().split("T")[0] ||
         w.createdAt?.toISOString().split("T")[0];
-      const day = last14Days.find((d) => d.date === activityDate);
-      if (day) day.wishlists += 1;
+      const entry = last14Days.find((d) => d.date === dateStr);
+      if (entry) entry.wishlist += 1;
     });
 
-    // === Compute totals for summary section ===
+    // Compute totals
     const totalSignups = users.length;
     const totalMatches = users.filter((u) => u.matchedSantaId).length;
     const totalWishlists = wishlists.filter((w) => w.items.length > 0).length;
@@ -80,12 +74,13 @@ export default async function handler(req, res) {
       totalWishlists,
     };
 
+    // ✅ Return consistent structure expected by frontend
     return res.status(200).json({
       activity: last14Days,
       summary,
     });
   } catch (error) {
     console.error("❌ Error building activity data:", error);
-    res.status(500).json({ error: "Failed to fetch activity" });
+    res.status(500).json({ error: "Failed to fetch activity data" });
   }
 }
