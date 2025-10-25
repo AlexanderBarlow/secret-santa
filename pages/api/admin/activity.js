@@ -14,18 +14,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        createdAt: true,
-        role: true,
-        matchedSantaId: true,
-      },
-    });
-
-    const wishlists = await prisma.wishlist.findMany({
-      include: { items: true },
-    });
+    // Fetch relevant data
+    const [users, wishlists] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          createdAt: true,
+          role: true,
+          matchedSantaId: true,
+        },
+      }),
+      prisma.wishlist.findMany({
+        include: { items: true },
+      }),
+    ]);
 
     const today = new Date();
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -39,25 +41,39 @@ export default async function handler(req, res) {
       };
     });
 
+    // --- Signups + Matches tracking ---
     users.forEach((user) => {
       const dateStr = user.createdAt.toISOString().split("T")[0];
       const day = last7Days.find((d) => d.date === dateStr);
-      if (day) day.signups++;
-      if (user.matchedSantaId) {
-        const matchDay = last7Days.find((d) => d.date === dateStr);
-        if (matchDay) matchDay.matches++;
+      if (day) {
+        day.signups++;
+        if (user.matchedSantaId) day.matches++;
       }
     });
 
-    wishlists.forEach((w) => {
-      if (!w.items.length) return;
-      const randomRecentDate =
-        w.updatedAt?.toISOString().split("T")[0] ||
-        w.createdAt?.toISOString().split("T")[0];
-      const day = last7Days.find((d) => d.date === randomRecentDate);
-      if (day) day.wishlists++;
+    // --- Wishlist tracking (more accurate) ---
+    wishlists.forEach((wishlist) => {
+      if (!wishlist.items.length) return;
+
+      // Use createdAt if within past 7 days, otherwise group into "earliest day"
+      const created = wishlist.createdAt ? new Date(wishlist.createdAt) : null;
+      const updated = wishlist.updatedAt ? new Date(wishlist.updatedAt) : null;
+      const dateToUse = updated && updated > created ? updated : created;
+
+      if (!dateToUse) return;
+
+      const dateStr = dateToUse.toISOString().split("T")[0];
+      const day = last7Days.find((d) => d.date === dateStr);
+
+      // If the wishlist predates the 7-day window, count it toward oldest day
+      if (day) {
+        day.wishlists++;
+      } else {
+        last7Days[0].wishlists++;
+      }
     });
 
+    // --- Summary ---
     const summary = {
       totalSignups: users.length,
       totalMatches: users.filter((u) => u.matchedSantaId).length,

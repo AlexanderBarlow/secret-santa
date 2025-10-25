@@ -12,13 +12,13 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   Cell,
-  AreaChart,
-  Area,
 } from "recharts";
-import { RefreshCcw, Sparkles, AlertCircle, Users, Gift } from "lucide-react";
+import { RefreshCcw, Sparkles, Users, Gift, AlertCircle } from "lucide-react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import confetti from "canvas-confetti";
@@ -36,7 +36,7 @@ const COLORS = [
 function RadialKpi({ label, value, color, sub, threshold = 100 }) {
   const pct = Number(value) || 0;
   const complete = pct >= threshold;
-  if (complete) confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+  if (complete) confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
 
   return (
     <motion.div whileHover={{ scale: 1.05 }} className="text-center">
@@ -78,7 +78,6 @@ export default function AdminAnalytics() {
   const [activity, setActivity] = useState(null);
   const [error, setError] = useState("");
 
-  /* ---------- Fetch ---------- */
   const fetchAll = async () => {
     try {
       setError("");
@@ -118,8 +117,6 @@ export default function AdminAnalytics() {
   const totalUsers = users.length;
   const accepted = users.filter((u) => u.Accepted).length;
   const matched = users.filter((u) => u.matchedSantaId != null).length;
-  const foh = users.filter((u) => u.role === "FRONT_OF_HOUSE").length;
-  const boh = users.filter((u) => u.role === "BACK_OF_HOUSE").length;
   const matchedPct = totalUsers ? Math.round((matched / totalUsers) * 100) : 0;
   const acceptedPct = totalUsers
     ? Math.round((accepted / totalUsers) * 100)
@@ -132,18 +129,31 @@ export default function AdminAnalytics() {
 
   const topItems = useMemo(() => {
     if (!wishlists?.topItems?.length) return [];
-    return wishlists.topItems.map((t) => ({
-      name: t.item,
-      count: t.count,
-    }));
+    return wishlists.topItems.map((t) => ({ name: t.item, count: t.count }));
   }, [wishlists]);
 
+  // === Transform activity for cumulative wishlist growth ===
+  const cumulativeActivity = useMemo(() => {
+    if (!activity?.activity) return [];
+    let wishlistTotal = 0;
+    return activity.activity.map((d) => {
+      wishlistTotal += d.wishlists || 0;
+      return { ...d, wishlist: wishlistTotal };
+    });
+  }, [activity]);
+
   const leaderboard = [
-    { role: "Front of House", value: foh },
-    { role: "Back of House", value: boh },
+    {
+      role: "Front of House",
+      value: users.filter((u) => u.role === "FRONT_OF_HOUSE").length,
+    },
+    {
+      role: "Back of House",
+      value: users.filter((u) => u.role === "BACK_OF_HOUSE").length,
+    },
   ];
 
-  const activityData = activity?.activity || [];
+  const activityData = cumulativeActivity;
   const actSummary = activity?.summary || {};
 
   /* ---------- UI ---------- */
@@ -200,17 +210,17 @@ export default function AdminAnalytics() {
               label="Wishlist Completion"
               value={wishlistCompletion}
               color="#f59e0b"
-              sub={wishlists ? `${wishlistCompletion}%` : "No data"}
+              sub={`${wishlistCompletion}%`}
             />
             <RadialKpi
-              label="Accepted / Total"
-              value={acceptedPct}
-              color="#3b82f6"
-              sub={`${accepted} / ${totalUsers}`}
+              label="Total Users"
+              value={100}
+              color="#60a5fa"
+              sub={`${totalUsers}`}
             />
           </div>
 
-          {/* Real Activity Chart */}
+          {/* Activity Trend */}
           <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
             <div className="font-semibold mb-3 flex items-center gap-2">
               <Users className="w-4 h-4" /> Activity (Past 7 Days)
@@ -253,7 +263,7 @@ export default function AdminAnalytics() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} />
+                  <XAxis dataKey="date" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
@@ -271,90 +281,12 @@ export default function AdminAnalytics() {
                   />
                   <Area
                     type="monotone"
-                    dataKey="wishlists"
+                    dataKey="wishlist"
                     stroke="#f59e0b"
                     fill="url(#gradWishlist)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Leaderboard + Top Wishlist Items */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-              <div className="font-semibold mb-3">Role Participation</div>
-              {!totalUsers ? (
-                <EmptyState>No users yet.</EmptyState>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={leaderboard}>
-                    <XAxis dataKey="role" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                      {leaderboard.map((entry, idx) => (
-                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-              <div className="font-semibold mb-3 flex items-center gap-2">
-                <Gift className="w-4 h-4" /> Top Wishlist Items
-              </div>
-              {!wishlists ? (
-                <EmptyState>No wishlist data yet.</EmptyState>
-              ) : topItems.length === 0 ? (
-                <EmptyState>No items yet.</EmptyState>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {topItems.map((it, i) => (
-                    <motion.span
-                      key={it.name + i}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="px-3 py-1.5 rounded-full text-sm border border-white/20 shadow-sm"
-                      style={{ background: `${COLORS[i % COLORS.length]}33` }}
-                    >
-                      {it.name} <span className="opacity-70">×{it.count}</span>
-                    </motion.span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Live Participation Pulse */}
-          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-            <div className="font-semibold mb-3 flex items-center gap-2">
-              <Users className="w-4 h-4" /> Live Participation Pulse
-            </div>
-            {!activityData.length ? (
-              <EmptyState>No activity yet.</EmptyState>
-            ) : (
-              <div className="flex gap-4 mt-2">
-                {["#60a5fa", "#a78bfa", "#f59e0b"].map((color, idx) => (
-                  <motion.div
-                    key={idx}
-                    animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 + idx }}
-                    className="w-4 h-4 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.6)]"
-                    style={{ background: color }}
-                  />
-                ))}
-              </div>
-            )}
-            {actSummary && (
-              <p className="mt-4 text-sm text-white/70">
-                {actSummary.totalSignups ?? 0} signups ·{" "}
-                {actSummary.totalMatches ?? 0} matches ·{" "}
-                {actSummary.totalWishlists ?? 0} wishlist updates (past 7 days)
-              </p>
             )}
           </div>
         </div>
