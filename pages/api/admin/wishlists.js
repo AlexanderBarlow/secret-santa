@@ -14,15 +14,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch all users and their wishlists
+    // Fetch users and wishlists
     const [users, wishlists] = await Promise.all([
       prisma.user.findMany({
-        select: { id: true, email: true },
+        select: { id: true },
       }),
       prisma.wishlist.findMany({
-        include: {
-          items: true,
-        },
+        include: { items: true },
         orderBy: { id: "asc" },
       }),
     ]);
@@ -30,10 +28,10 @@ export default async function handler(req, res) {
     const totalUsers = users.length;
     const totalWishlists = wishlists.length;
 
-    // Users that have at least one wishlist entry (regardless of pendingAccept)
+    // Users who have at least one wishlist
     const usersWithWishlists = new Set(wishlists.map((w) => w.userId));
 
-    // Users that actually have items in their wishlist
+    // Users who have at least one item
     const usersWithItems = new Set(
       wishlists.filter((w) => w.items.length > 0).map((w) => w.userId)
     );
@@ -41,27 +39,43 @@ export default async function handler(req, res) {
     const completionRate =
       totalUsers > 0 ? Math.round((usersWithItems.size / totalUsers) * 100) : 0;
 
-    // Count top requested items
+    // Count top wishlist items (preserve casing for display)
     const itemCounts = {};
     for (const w of wishlists) {
       for (const item of w.items) {
-        const name = item.item?.trim().toLowerCase();
+        const name = item.item?.trim();
         if (!name) continue;
-        itemCounts[name] = (itemCounts[name] || 0) + 1;
+        const key = name.toLowerCase();
+        itemCounts[key] = itemCounts[key] || { item: name, count: 0 };
+        itemCounts[key].count += 1;
       }
     }
 
-    const topItems = Object.entries(itemCounts)
-      .map(([item, count]) => ({ item, count }))
+    const topItems = Object.values(itemCounts)
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // Generate simple wishlist activity trend by date
-    const wishlistActivity = wishlists
-      .filter((w) => w.createdAt)
-      .map((w) => ({
-        date: w.createdAt.toISOString().slice(0, 10),
-      }));
+    // Aggregate wishlist creation by date for activity chart
+    const activityMap = {};
+    for (const w of wishlists) {
+      const date =
+        w.updatedAt?.toISOString().slice(0, 10) ||
+        w.createdAt?.toISOString().slice(0, 10);
+      if (!date) continue;
+      activityMap[date] = (activityMap[date] || 0) + 1;
+    }
+
+    // Return last 14 days with 0 fill
+    const today = new Date();
+    const last14Days = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (13 - i));
+      const dateKey = d.toISOString().slice(0, 10);
+      return {
+        date: dateKey,
+        count: activityMap[dateKey] || 0,
+      };
+    });
 
     return res.status(200).json({
       summary: {
@@ -72,8 +86,7 @@ export default async function handler(req, res) {
         completionRate,
       },
       topItems,
-      wishlistActivity,
-      wishlists,
+      wishlistActivity: last14Days,
     });
   } catch (error) {
     console.error("❌ Wishlist analytics error:", error);
