@@ -5,8 +5,44 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, User, Gift, Upload, LogOut } from "lucide-react";
+import {
+  Home,
+  User,
+  Gift,
+  Upload,
+  LogOut,
+  Trash2,
+  Plus,
+  Save,
+} from "lucide-react";
 import LanguageSwitcher from "../components/languageswitcher";
+
+/* ---------------- Settings ---------------- */
+const MAX_ITEMS = 5;
+
+// very lightweight inappropriate-content check (tunable)
+const BAD_WORDS = [
+  // keep this list short & general—expand per your needs:
+  "fuck",
+  "shit",
+  "bitch",
+  "asshole",
+  "dick",
+  "pussy",
+  "cunt",
+  "nigger",
+  "kike",
+  "chink",
+  "spic",
+  "faggot",
+  "kill myself",
+  "suicide",
+  "hang myself",
+];
+const isInappropriate = (text = "") => {
+  const t = text.toLowerCase();
+  return BAD_WORDS.some((w) => t.includes(w));
+};
 
 /* ---------------- Frosted Button ---------------- */
 const FrostedButton = ({
@@ -15,22 +51,37 @@ const FrostedButton = ({
   label,
   className = "",
   type = "button",
+  disabled = false,
 }) => (
   <motion.button
     type={type}
-    whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.25)" }}
-    whileTap={{ scale: 0.9, backgroundColor: "rgba(255,255,255,0.35)" }}
+    whileHover={
+      !disabled
+        ? { scale: 1.08, backgroundColor: "rgba(255,255,255,0.25)" }
+        : {}
+    }
+    whileTap={!disabled ? { scale: 0.95 } : {}}
     onClick={onClick}
     aria-label={label}
-    className={`w-11 h-11 flex items-center justify-center rounded-full border border-white/25 backdrop-blur-md bg-white/15 text-white shadow-md hover:shadow-lg transition-all duration-300 ${className}`}
+    disabled={disabled}
+    className={`w-11 h-11 flex items-center justify-center rounded-full border border-white/25 backdrop-blur-md bg-white/15 text-white shadow-md transition-all duration-300 disabled:opacity-50 ${className}`}
   >
     {icon}
   </motion.button>
 );
 
 /* ---------------- Wishlist Form ---------------- */
-const WishlistForm = memo(({ wishlistInputs, setWishlistInputs, onSave }) => {
+const WishlistForm = memo(function WishlistForm({
+  wishlistInputs,
+  setWishlistInputs,
+  onSave,
+  invalidIndices,
+  saving,
+  saveStatus,
+}) {
   const { t } = useTranslation();
+
+  const canAdd = wishlistInputs.length < MAX_ITEMS;
 
   const handleInputChange = (index, value) => {
     setWishlistInputs((prev) => {
@@ -41,34 +92,107 @@ const WishlistForm = memo(({ wishlistInputs, setWishlistInputs, onSave }) => {
   };
 
   const handleAddWishlistItem = () => {
+    if (!canAdd) return;
     setWishlistInputs((prev) => [...prev, ""]);
   };
 
-  return (
-    <div className="space-y-4 mt-5">
-      {wishlistInputs.map((item, i) => (
-        <motion.input
-          key={i}
-          type="text"
-          value={item}
-          onChange={(e) => handleInputChange(i, e.target.value)}
-          placeholder={`🎁 ${t("Wishlist Item")} ${i + 1}`}
-          className="w-full px-4 py-3 bg-white/15 border border-white/25 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/60 transition-all duration-200"
-          whileFocus={{ scale: 1.02 }}
-        />
-      ))}
+  const handleDelete = (index) => {
+    setWishlistInputs((prev) => prev.filter((_, i) => i !== index));
+  };
 
-      <div className="flex justify-center gap-3 pt-4">
+  const remaining = MAX_ITEMS - wishlistInputs.length;
+
+  return (
+    <div className="mt-6">
+      {/* Counter */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-white/80 text-sm">
+          {t("You can add up to")} {MAX_ITEMS} {t("items")}.
+        </span>
+        <span
+          className={`text-xs px-2 py-1 rounded-full ${
+            remaining >= 0 ? "bg-white/15" : "bg-red-500/40"
+          } border border-white/25`}
+        >
+          {Math.max(remaining, 0)} {t("remaining")}
+        </span>
+      </div>
+
+      {/* Inputs */}
+      <div className="space-y-3">
+        <AnimatePresence initial={false}>
+          {wishlistInputs.map((item, i) => {
+            const isInvalid = invalidIndices.has(i);
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                className={`flex items-center gap-2`}
+              >
+                <motion.input
+                  type="text"
+                  value={item}
+                  onChange={(e) => handleInputChange(i, e.target.value)}
+                  placeholder={`🎁 ${t("Wishlist Item")} ${i + 1}`}
+                  className={`w-full px-4 py-3 bg-white/15 border ${
+                    isInvalid
+                      ? "border-red-400/70 ring-2 ring-red-400/40"
+                      : "border-white/25"
+                  } rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/60 transition-all duration-200`}
+                  whileFocus={{ scale: 1.01 }}
+                />
+                <FrostedButton
+                  onClick={() => handleDelete(i)}
+                  label="Delete Item"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  className="!w-10 !h-10"
+                />
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-center gap-3 pt-5">
         <FrostedButton
           onClick={handleAddWishlistItem}
           label="Add Item"
-          icon={<span>➕</span>}
+          icon={<Plus className="w-5 h-5" />}
+          disabled={!canAdd}
         />
-        <FrostedButton
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
           onClick={onSave}
-          label="Save Wishlist"
-          icon={<span>💾</span>}
-        />
+          disabled={saving}
+          className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-semibold border border-white/30 bg-white/20 text-white backdrop-blur-md shadow-md transition disabled:opacity-60`}
+        >
+          <Save className={`w-4 h-4 ${saving ? "animate-pulse" : ""}`} />
+          {saving ? t("Saving...") : t("Save Wishlist")}
+        </motion.button>
+      </div>
+
+      {/* Save banner */}
+      <div className="mt-4 min-h-[32px]">
+        <AnimatePresence>
+          {saveStatus.kind !== "idle" && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className={`mx-auto w-full text-center text-sm px-3 py-2 rounded-xl border backdrop-blur-md ${
+                saveStatus.kind === "success"
+                  ? "bg-green-500/20 border-green-400/40 text-green-100"
+                  : "bg-red-500/20 border-red-400/40 text-red-100"
+              }`}
+            >
+              {saveStatus.message}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -80,11 +204,14 @@ export default function UserDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [wishlistInputs, setWishlistInputs] = useState([]);
+  const [invalidIndices, setInvalidIndices] = useState(new Set());
   const [matchedSanta, setMatchedSanta] = useState(null);
   const [matchedSantaWishlist, setMatchedSantaWishlist] = useState([]);
   const [eventDetails, setEventDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState({ kind: "idle", message: "" }); // idle|success|error
   const dataFetched = useRef(false);
 
   /* ---------------- Fetch Data ---------------- */
@@ -111,8 +238,10 @@ export default function UserDashboard() {
         setMatchedSanta(userRes.data?.matchedSanta || null);
         setEventDetails(eventRes.data || {});
 
-        const wishlist = wishlistRes.data?.wishlist || [];
-        setWishlistInputs(wishlist.length ? wishlist : [""]);
+        const wishlist = (wishlistRes.data?.wishlist || []).map(String);
+        setWishlistInputs(
+          wishlist.length ? wishlist.slice(0, MAX_ITEMS) : [""]
+        );
         setMatchedSantaWishlist(userRes.data?.matchedSantaWishlist || []);
       } catch (err) {
         console.error(err);
@@ -124,16 +253,82 @@ export default function UserDashboard() {
   }, [router]);
 
   /* ---------------- Wishlist Save ---------------- */
-  const handleAddToWishlist = async () => {
-    const validItems = wishlistInputs.filter((item) => item.trim() !== "");
-    if (!validItems.length) return;
+  const validateWishlist = (items) => {
+    const trimmed = items.map((s) => (s ?? "").trim());
+    const invalidSet = new Set();
+    const filtered = [];
 
-    const token = localStorage.getItem("token");
-    await axios.post(
-      "/api/admin/users/addwishlist",
-      { wishlist: validItems },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    trimmed.forEach((val, idx) => {
+      if (!val) return; // ignore empty
+      const tooLong = val.length > 120; // optional length guard
+      const bad = isInappropriate(val);
+      if (bad || tooLong) {
+        invalidSet.add(idx);
+      } else {
+        filtered.push(val);
+      }
+    });
+
+    // Enforce max items
+    const limited = filtered.slice(0, MAX_ITEMS);
+    return { limited, invalidSet };
+  };
+
+  const handleAddToWishlist = async () => {
+    setSaving(true);
+    setSaveStatus({ kind: "idle", message: "" });
+
+    const { limited, invalidSet } = validateWishlist(wishlistInputs);
+    setInvalidIndices(invalidSet);
+
+    if (invalidSet.size > 0) {
+      setSaving(false);
+      setSaveStatus({
+        kind: "error",
+        message: t(
+          "Some items were flagged or invalid. Please review highlighted fields."
+        ),
+      });
+      return;
+    }
+
+    if (!limited.length) {
+      setSaving(false);
+      setSaveStatus({
+        kind: "error",
+        message: t("Please add at least one valid item before saving."),
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        "/api/admin/users/addwishlist",
+        { wishlist: limited },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSaveStatus({
+        kind: "success",
+        message: t("Wishlist saved successfully!"),
+      });
+
+      // snap inputs to normalized list (trimmed, limited)
+      setWishlistInputs(limited);
+    } catch (e) {
+      console.error(e);
+      setSaveStatus({
+        kind: "error",
+        message: t(
+          "There was an error saving your wishlist. Please try again."
+        ),
+      });
+    } finally {
+      setSaving(false);
+      // auto-hide the banner after a bit
+      setTimeout(() => setSaveStatus({ kind: "idle", message: "" }), 2500);
+    }
   };
 
   const handleLogout = () => {
@@ -148,8 +343,8 @@ export default function UserDashboard() {
     size: 6 + ((i * 11) % 10),
     duration: 10 + ((i * 7) % 10),
     delay: (i * 0.7) % 6,
-    opacity: 0.6 + (((i * 13) % 4) / 10),
-    drift: (i % 2 ? 30 : -30),
+    opacity: 0.6 + ((i * 13) % 4) / 10,
+    drift: i % 2 ? 30 : -30,
   }));
 
   /* ---------------- Render ---------------- */
@@ -224,8 +419,8 @@ export default function UserDashboard() {
                       <strong>{t("Match Date")}:</strong>{" "}
                       {eventDetails.matchSantaDate
                         ? new Date(
-                          eventDetails.matchSantaDate
-                        ).toLocaleDateString()
+                            eventDetails.matchSantaDate
+                          ).toLocaleDateString()
                         : "-"}
                     </p>
                     <p>
@@ -238,6 +433,9 @@ export default function UserDashboard() {
                     wishlistInputs={wishlistInputs}
                     setWishlistInputs={setWishlistInputs}
                     onSave={handleAddToWishlist}
+                    invalidIndices={invalidIndices}
+                    saving={saving}
+                    saveStatus={saveStatus}
                   />
                 </motion.div>
               )}
@@ -252,7 +450,9 @@ export default function UserDashboard() {
                   transition={{ duration: 0.3 }}
                   className="w-11/12 max-w-md rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl p-6 sm:p-10 text-center"
                 >
-                  <h2 className="text-xl font-semibold mb-4">👤 Edit Profile</h2>
+                  <h2 className="text-xl font-semibold mb-4">
+                    👤 Edit Profile
+                  </h2>
                   <div className="flex flex-col items-center gap-4">
                     <div className="relative">
                       <img
@@ -332,22 +532,20 @@ export default function UserDashboard() {
         </AnimatePresence>
       </div>
 
-  
       {/* ---------------- Floating Navbar ---------------- */}
       <motion.nav
         className="fixed bottom-6 inset-x-0 flex items-center justify-center z-50"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 120, damping: 15 }}
+        transition={{ type: "spring", stiffness: 120, damping: 15 }}
       >
-        <div
-          className="relative flex items-center justify-between w-[88%] max-w-sm h-[70px] px-10 mx-auto rounded-full backdrop-blur-2xl bg-white/15 border border-white/25 shadow-[0_8px_35px_rgba(0,0,0,0.35)]"
-        >
+        <div className="relative flex items-center justify-between w-[88%] max-w-sm h-[70px] px-10 mx-auto rounded-full backdrop-blur-2xl bg-white/15 border border-white/25 shadow-[0_8px_35px_rgba(0,0,0,0.35)]">
           {/* Profile Tab */}
           <button
-            onClick={() => setTab('profile')}
-            className={`flex flex-col items-center justify-center text-sm ${tab === 'profile' ? 'text-white' : 'text-white/70'
-              }`}
+            onClick={() => setTab("profile")}
+            className={`flex flex-col items-center justify-center text-sm ${
+              tab === "profile" ? "text-white" : "text-white/70"
+            }`}
           >
             <User className="w-6 h-6 mb-0.5" />
             <span className="text-[11px] leading-none">Profile</span>
@@ -355,9 +553,10 @@ export default function UserDashboard() {
 
           {/* Santa Tab */}
           <button
-            onClick={() => setTab('santa')}
-            className={`flex flex-col items-center justify-center text-sm ${tab === 'santa' ? 'text-white' : 'text-white/70'
-              }`}
+            onClick={() => setTab("santa")}
+            className={`flex flex-col items-center justify-center text-sm ${
+              tab === "santa" ? "text-white" : "text-white/70"
+            }`}
           >
             <Gift className="w-6 h-6 mb-0.5" />
             <span className="text-[11px] leading-none">Santa</span>
@@ -366,9 +565,12 @@ export default function UserDashboard() {
           {/* Floating Home Button */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%]">
             <button
-              onClick={() => setTab('home')}
-              className={`flex flex-col items-center justify-center w-[80px] h-[80px] rounded-full ${tab === 'home' ? 'bg-white text-[#0b1437]' : 'bg-white/30 text-white'
-                } shadow-[0_10px_30px_rgba(0,0,0,0.35)] border border-white/40 transition-all duration-300`}
+              onClick={() => setTab("home")}
+              className={`flex flex-col items-center justify-center w-[80px] h-[80px] rounded-full ${
+                tab === "home"
+                  ? "bg-white text-[#0b1437]"
+                  : "bg-white/30 text-white"
+              } shadow-[0_10px_30px_rgba(0,0,0,0.35)] border border-white/40 transition-all duration-300`}
             >
               <Home className="w-7 h-7 mb-0.5" />
               <span className="text-[11px] font-medium leading-none">Home</span>
@@ -377,10 +579,7 @@ export default function UserDashboard() {
         </div>
       </motion.nav>
 
-
-
-
-      {/* Logout Button */}
+      {/* Logout Button (kept clear of navbar on mobile) */}
       <FrostedButton
         onClick={handleLogout}
         label="Logout"

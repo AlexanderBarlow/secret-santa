@@ -64,15 +64,25 @@ export default function Dashboard() {
     }
   };
 
+  // 🧮 Filtered + pending counts
   const filteredUsers = users.filter((user) => {
-    const role = user.role ? user.role.toLowerCase() : "";
-    if (filter === "pending") return !user.Accepted;
-    if (filter === "backOfHouse")
-      return role.includes("back") || role === "boh";
-    if (filter === "frontOfHouse")
-      return role.includes("front") || role === "foh";
-    return true;
+    const role = (user.role || "").toLowerCase();
+    const isAccepted = Boolean(user.Accepted ?? user.accepted);
+
+    switch (filter) {
+      case "pending":
+        return !isAccepted;
+      case "backOfHouse":
+        return role.includes("back") || role === "boh";
+      case "frontOfHouse":
+        return role.includes("front") || role === "foh";
+      default:
+        return true;
+    }
   });
+
+
+  const pendingCount = users.filter((u) => !u.Accepted).length;
 
   return (
     <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white overflow-hidden">
@@ -99,10 +109,12 @@ export default function Dashboard() {
       </div>
 
       {/* 🎄 Header */}
+      {/* 🎄 Header */}
       <header className="relative z-10 text-center mt-6 sm:mt-10 px-4">
         <h1 className="text-3xl sm:text-5xl font-extrabold bg-gradient-to-r from-red-500 via-pink-300 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] leading-tight">
           Admin Dashboard 🎅
         </h1>
+
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -111,21 +123,72 @@ export default function Dashboard() {
         >
           Manage users, approvals, and roles in your Secret Santa event.
         </motion.p>
+
         <div className="w-16 sm:w-24 h-1 mt-4 mx-auto bg-gradient-to-r from-red-500 via-white to-green-500 rounded-full shadow-lg"></div>
+
+        {/* 🎁 Pending Count (smaller + conditional) */}
+        {pendingCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="mt-5 inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 
+                 bg-white/10 border border-white/25 backdrop-blur-xl rounded-full shadow-md"
+          >
+            <span className="text-sm sm:text-base font-medium text-white/90">
+              🕒 Pending Users:
+            </span>
+            <motion.span
+              key={pendingCount}
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1.05, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 150, damping: 10 }}
+              className={`text-lg sm:text-xl font-extrabold px-3 py-0.5 rounded-lg shadow 
+                   ${
+                     pendingCount > 0
+                       ? "bg-gradient-to-r from-yellow-400 via-red-400 to-pink-400 text-transparent bg-clip-text drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
+                       : "text-green-300"
+                   }`}
+            >
+              {pendingCount}
+            </motion.span>
+          </motion.div>
+        )}
       </header>
 
       {/* 🔍 Filters */}
       <div className="relative z-10 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center mt-8 px-4">
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="px-6 py-2 sm:px-8 sm:py-3 rounded-full bg-white/10 backdrop-blur-lg border border-white/30 text-white shadow-md text-sm sm:text-base focus:ring-2 focus:ring-white/40 outline-none transition hover:bg-white/20"
-        >
-          <option value="all">All Users</option>
-          <option value="pending">Pending Users</option>
-          <option value="backOfHouse">Back of House</option>
-          <option value="frontOfHouse">Front of House</option>
-        </select>
+        <div className="relative">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="px-6 py-2 sm:px-8 sm:py-3 rounded-full
+                 bg-gradient-to-r from-[#2b2b6b]/80 via-[#3b3b8f]/70 to-[#2b2b6b]/80
+                 text-white font-semibold backdrop-blur-xl
+                 border border-white/30 shadow-[0_4px_25px_rgba(255,255,255,0.15)]
+                 focus:ring-2 focus:ring-pink-300 focus:outline-none
+                 appearance-none transition-all duration-300
+                 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]"
+          >
+            <option value="all" className="bg-[#1a1a40] text-white">
+              🎅 All Users
+            </option>
+            <option value="pending" className="bg-[#1a1a40] text-white">
+              🕒 Pending Users
+            </option>
+            <option value="backOfHouse" className="bg-[#1a1a40] text-white">
+              👨‍🍳 Back of House
+            </option>
+            <option value="frontOfHouse" className="bg-[#1a1a40] text-white">
+              ☕ Front of House
+            </option>
+          </select>
+
+          {/* Custom dropdown arrow */}
+          <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-white/80">
+            ▼
+          </div>
+        </div>
       </div>
 
       {/* ⚠️ Error */}
@@ -150,19 +213,19 @@ export default function Dashboard() {
         {loading
           ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />)
           : filteredUsers.map((user, i) => (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <UserCard
-                user={user}
-                handleAcceptUser={handleAcceptUser}
-                openDeleteModal={openDeleteModal}
-              />
-            </motion.div>
-          ))}
+              <motion.div
+                key={user.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <UserCard
+                  user={user}
+                  handleAcceptUser={handleAcceptUser}
+                  openDeleteModal={openDeleteModal}
+                />
+              </motion.div>
+            ))}
       </motion.div>
 
       {/* 🗑️ Delete Modal */}
@@ -185,7 +248,8 @@ export default function Dashboard() {
                 Confirm Deletion
               </h2>
               <p className="text-white/80 mb-6 text-sm sm:text-base">
-                Are you sure you want to remove this user? This action cannot be undone.
+                Are you sure you want to remove this user? This action cannot be
+                undone.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                 <motion.button
