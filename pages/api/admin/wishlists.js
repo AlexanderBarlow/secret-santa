@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../../../lib/prisma";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
   const authHeader = req.headers.authorization;
@@ -16,37 +14,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ Fetch all wishlists with users and items
-    const wishlists = await prisma.wishlist.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-          },
+    // Fetch all users and their wishlists
+    const [users, wishlists] = await Promise.all([
+      prisma.user.findMany({
+        select: { id: true, email: true },
+      }),
+      prisma.wishlist.findMany({
+        include: {
+          items: true,
         },
-        items: true, // ✅ includes WishlistItem array
-      },
-      orderBy: { id: "asc" },
-    });
+        orderBy: { id: "asc" },
+      }),
+    ]);
 
-    console.log("✅ Found wishlists:", wishlists.length);
-
-    if (!wishlists.length) {
-      return res.status(200).json({
-        summary: { totalWishlists: 0, completed: 0, completionRate: 0 },
-        topItems: [],
-        wishlists: [],
-      });
-    }
-
-    // ✅ Count totals
+    const totalUsers = users.length;
     const totalWishlists = wishlists.length;
-    const completed = wishlists.filter((w) => w.items.length > 0).length;
-    const completionRate = Math.round((completed / totalWishlists) * 100);
 
-    // ✅ Count top items
+    // Users that have at least one wishlist entry (regardless of pendingAccept)
+    const usersWithWishlists = new Set(wishlists.map((w) => w.userId));
+
+    // Users that actually have items in their wishlist
+    const usersWithItems = new Set(
+      wishlists.filter((w) => w.items.length > 0).map((w) => w.userId)
+    );
+
+    const completionRate =
+      totalUsers > 0 ? Math.round((usersWithItems.size / totalUsers) * 100) : 0;
+
+    // Count top requested items
     const itemCounts = {};
     for (const w of wishlists) {
       for (const item of w.items) {
@@ -61,17 +56,27 @@ export default async function handler(req, res) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
+    // Generate simple wishlist activity trend by date
+    const wishlistActivity = wishlists
+      .filter((w) => w.createdAt)
+      .map((w) => ({
+        date: w.createdAt.toISOString().slice(0, 10),
+      }));
+
     return res.status(200).json({
       summary: {
+        totalUsers,
         totalWishlists,
-        completed,
+        usersWithWishlists: usersWithWishlists.size,
+        usersWithItems: usersWithItems.size,
         completionRate,
       },
       topItems,
+      wishlistActivity,
       wishlists,
     });
   } catch (error) {
-    console.error("❌ Error fetching wishlist data:", error);
+    console.error("❌ Wishlist analytics error:", error);
     res.status(500).json({ error: "Failed to fetch wishlist analytics" });
   }
 }
