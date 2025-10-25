@@ -4,16 +4,14 @@ import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
 import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   Cell,
@@ -220,8 +218,18 @@ export default function AdminAnalytics() {
             />
           </div>
 
-          {/* Activity Trend */}
-          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+          {/* Activity Trend (with glow + pulse) */}
+          <motion.div
+            className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl relative overflow-hidden"
+            animate={{
+              boxShadow: [
+                "0 0 20px rgba(245,158,11,0.1)",
+                "0 0 30px rgba(245,158,11,0.2)",
+                "0 0 20px rgba(245,158,11,0.1)",
+              ],
+            }}
+            transition={{ repeat: Infinity, duration: 6 }}
+          >
             <div className="font-semibold mb-3 flex items-center gap-2">
               <Users className="w-4 h-4" /> Activity (Past 7 Days)
             </div>
@@ -254,11 +262,15 @@ export default function AdminAnalytics() {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.9} />
+                      <stop
+                        offset="0%"
+                        stopColor="#f59e0b"
+                        stopOpacity={0.95}
+                      />
                       <stop
                         offset="100%"
                         stopColor="#f59e0b"
-                        stopOpacity={0.1}
+                        stopOpacity={0.05}
                       />
                     </linearGradient>
                   </defs>
@@ -272,23 +284,28 @@ export default function AdminAnalytics() {
                     dataKey="signups"
                     stroke="#60a5fa"
                     fill="url(#gradSignup)"
+                    strokeWidth={2}
                   />
                   <Area
                     type="monotone"
                     dataKey="matches"
                     stroke="#a78bfa"
                     fill="url(#gradMatch)"
+                    strokeWidth={2}
                   />
                   <Area
                     type="monotone"
                     dataKey="wishlist"
                     stroke="#f59e0b"
                     fill="url(#gradWishlist)"
+                    strokeWidth={3}
+                    strokeDasharray="4 2"
+                    animationDuration={1000}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             )}
-          </div>
+          </motion.div>
         </div>
       </main>
 
