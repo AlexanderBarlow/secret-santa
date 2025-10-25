@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import AdminNavbar from "../../components/AdminNavbar";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   LineChart,
   Line,
@@ -15,21 +15,14 @@ import {
   BarChart,
   Bar,
   Cell,
+  AreaChart,
+  Area,
 } from "recharts";
-import {
-  Loader2,
-  RefreshCcw,
-  Sparkles,
-  AlertCircle,
-  Award,
-  Users,
-  Gift,
-} from "lucide-react";
+import { RefreshCcw, Sparkles, AlertCircle, Users, Gift } from "lucide-react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import confetti from "canvas-confetti";
 
-/* ---------------- Helpers ---------------- */
 const COLORS = [
   "#60a5fa",
   "#a78bfa",
@@ -38,37 +31,22 @@ const COLORS = [
   "#ef4444",
   "#e879f9",
 ];
-const fmtDate = (iso) => new Date(iso).toLocaleDateString();
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+const fmtDate = (iso) => new Date(iso).toLocaleDateString();
 
-function byDayRole(users) {
-  const map = {};
-  users.forEach((u) => {
-    const d = new Date(u.createdAt);
-    const key = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-      .toISOString()
-      .slice(0, 10);
-    if (!map[key]) map[key] = { date: key, FOH: 0, BOH: 0 };
-    if (u.role === "FRONT_OF_HOUSE") map[key].FOH++;
-    else map[key].BOH++;
-  });
-  return Object.values(map).sort((a, b) => (a.date < b.date ? -1 : 1));
-}
+/* ---------- Radial KPI ---------- */
+function RadialKpi({ label, value, color, sub, threshold = 100 }) {
+  const pct = Number(value) || 0;
+  const complete = pct >= threshold;
+  if (complete) confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
 
-/* ---------------- KPI Card ---------------- */
-function RadialKpi({ label, value, color, threshold = 100, sub }) {
-  const percentage = Number(value) || 0;
-  const complete = percentage >= threshold;
-  if (complete) {
-    confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
-  }
   return (
     <motion.div whileHover={{ scale: 1.05 }} className="text-center">
       <div className="flex justify-center mb-2">
         <div style={{ width: 90, height: 90 }}>
           <CircularProgressbar
-            value={percentage}
-            text={`${percentage}%`}
+            value={pct}
+            text={`${pct}%`}
             styles={buildStyles({
               pathColor: complete ? "#22c55e" : color,
               textColor: "#fff",
@@ -83,7 +61,7 @@ function RadialKpi({ label, value, color, threshold = 100, sub }) {
   );
 }
 
-/* ---------------- Empty State ---------------- */
+/* ---------- Empty State ---------- */
 function EmptyState({ children }) {
   return (
     <div className="w-full rounded-2xl p-4 border border-white/20 bg-white/10 text-white/80 text-sm flex items-center gap-2">
@@ -93,12 +71,13 @@ function EmptyState({ children }) {
   );
 }
 
-/* ---------------- Main Component ---------------- */
+/* ---------- Main Component ---------- */
 export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState([]);
   const [wishlists, setWishlists] = useState(null);
+  const [activity, setActivity] = useState(null);
   const [error, setError] = useState("");
 
   /* ---------- Fetch ---------- */
@@ -107,14 +86,18 @@ export default function AdminAnalytics() {
       setError("");
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
-      const [usersRes, wlRes] = await Promise.allSettled([
+      const [usersRes, wlRes, actRes] = await Promise.allSettled([
         axios.get("/api/admin/users", { headers }),
         axios.get("/api/admin/wishlists", { headers }),
+        axios.get("/api/admin/activity", { headers }),
       ]);
+
       if (usersRes.status === "fulfilled") setUsers(usersRes.value.data);
       if (wlRes.status === "fulfilled") setWishlists(wlRes.value.data);
-      else setWishlists(null);
-    } catch {
+      if (actRes.status === "fulfilled") setActivity(actRes.value.data);
+      else setActivity(null);
+    } catch (e) {
+      console.error(e);
       setError("Failed to load analytics data.");
       setUsers([]);
       setWishlists(null);
@@ -144,8 +127,6 @@ export default function AdminAnalytics() {
     ? Math.round((accepted / totalUsers) * 100)
     : 0;
 
-  const signupsByRole = useMemo(() => byDayRole(users), [users]);
-
   const wishlistCompletion = useMemo(() => {
     if (!Array.isArray(wishlists) || totalUsers === 0) return null;
     const withItems = wishlists.filter((w) => w.items.length > 0).length;
@@ -173,6 +154,9 @@ export default function AdminAnalytics() {
     { role: "Back of House", value: boh },
   ];
 
+  const activityData = activity?.activity || [];
+  const actSummary = activity?.summary || {};
+
   /* ---------- UI ---------- */
   return (
     <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-[#0b1437] via-[#122359] to-[#1b3f9d] text-white overflow-hidden">
@@ -180,12 +164,12 @@ export default function AdminAnalytics() {
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/10 border-b border-white/20 shadow-lg">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-5">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-yellow-400" />
               Admin Analytics
             </h1>
             <p className="text-white/80 text-sm mt-1">
-              Real-time insights into participation, matches, and wishlists.
+              Live insights into signups, matches, and wishlist engagement.
             </p>
           </div>
           <motion.button
@@ -209,7 +193,7 @@ export default function AdminAnalytics() {
         <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
           {error && <EmptyState>{error}</EmptyState>}
 
-          {/* KPI Ring Row */}
+          {/* KPI Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <RadialKpi
               label="Accepted Users"
@@ -237,18 +221,18 @@ export default function AdminAnalytics() {
             />
           </div>
 
-          {/* Signup Trend by Role */}
-          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-glow">
-            <div className="font-semibold mb-3">Signups by Role Over Time</div>
-            {loading ? (
-              <EmptyState>Loading chart…</EmptyState>
-            ) : signupsByRole.length === 0 ? (
-              <EmptyState>No signups yet.</EmptyState>
+          {/* Real Activity Chart */}
+          <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
+            <div className="font-semibold mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4" /> Activity (Past 7 Days)
+            </div>
+            {!activityData.length ? (
+              <EmptyState>No recent activity recorded.</EmptyState>
             ) : (
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={signupsByRole}>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={activityData}>
                   <defs>
-                    <linearGradient id="gradFOH" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gradSignup" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.9} />
                       <stop
                         offset="100%"
@@ -256,7 +240,7 @@ export default function AdminAnalytics() {
                         stopOpacity={0.1}
                       />
                     </linearGradient>
-                    <linearGradient id="gradBOH" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gradMatch" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.9} />
                       <stop
                         offset="100%"
@@ -264,42 +248,57 @@ export default function AdminAnalytics() {
                         stopOpacity={0.1}
                       />
                     </linearGradient>
+                    <linearGradient
+                      id="gradWishlist"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.9} />
+                      <stop
+                        offset="100%"
+                        stopColor="#f59e0b"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                   <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Line
-                    dataKey="FOH"
-                    stroke="url(#gradFOH)"
-                    strokeWidth={4}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 6 }}
+                  <Area
+                    type="monotone"
+                    dataKey="signup"
+                    stroke="#60a5fa"
+                    fill="url(#gradSignup)"
                   />
-                  <Line
-                    dataKey="BOH"
-                    stroke="url(#gradBOH)"
-                    strokeWidth={4}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 6 }}
+                  <Area
+                    type="monotone"
+                    dataKey="match"
+                    stroke="#a78bfa"
+                    fill="url(#gradMatch)"
                   />
-                </LineChart>
+                  <Area
+                    type="monotone"
+                    dataKey="wishlist"
+                    stroke="#f59e0b"
+                    fill="url(#gradWishlist)"
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* Leaderboard + Wishlist Items */}
+          {/* Leaderboard + Top Wishlist Items */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Role Leaderboard */}
             <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
-              <div className="font-semibold mb-3">
-                Role Participation Leaderboard
-              </div>
-              {totalUsers === 0 ? (
+              <div className="font-semibold mb-3">Role Participation</div>
+              {!totalUsers ? (
                 <EmptyState>No users yet.</EmptyState>
               ) : (
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={leaderboard}>
                     <XAxis dataKey="role" />
                     <YAxis allowDecimals={false} />
@@ -318,7 +317,6 @@ export default function AdminAnalytics() {
               )}
             </div>
 
-            {/* Top Wishlist Items */}
             <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
               <div className="font-semibold mb-3 flex items-center gap-2">
                 <Gift className="w-4 h-4" /> Top Wishlist Items
@@ -353,9 +351,11 @@ export default function AdminAnalytics() {
             <div className="font-semibold mb-3 flex items-center gap-2">
               <Users className="w-4 h-4" /> Live Participation Pulse
             </div>
-            <div className="flex gap-4 mt-2">
-              {["#60a5fa", "#a78bfa", "#f59e0b", "#22c55e"].map(
-                (color, idx) => (
+            {!activityData.length ? (
+              <EmptyState>No activity yet.</EmptyState>
+            ) : (
+              <div className="flex gap-4 mt-2">
+                {["#60a5fa", "#a78bfa", "#f59e0b"].map((color, idx) => (
                   <motion.div
                     key={idx}
                     animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
@@ -363,9 +363,16 @@ export default function AdminAnalytics() {
                     className="w-4 h-4 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.6)]"
                     style={{ background: color }}
                   />
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            )}
+            {actSummary && (
+              <p className="mt-4 text-sm text-white/70">
+                {actSummary.totalSignups} signups · {actSummary.totalMatches}{" "}
+                matches · {actSummary.totalWishlists} wishlist updates (past 7
+                days)
+              </p>
+            )}
           </div>
         </div>
       </main>
