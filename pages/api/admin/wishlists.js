@@ -16,6 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ✅ Fetch all wishlists with users and items
     const wishlists = await prisma.wishlist.findMany({
       include: {
         user: {
@@ -23,33 +24,39 @@ export default async function handler(req, res) {
             id: true,
             email: true,
             role: true,
-            Accepted: true,
-            createdAt: true,
           },
         },
-        items: {
-          select: { item: true },
-        },
+        items: true, // ✅ includes WishlistItem array
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { id: "asc" },
     });
 
+    console.log("✅ Found wishlists:", wishlists.length);
+
+    if (!wishlists.length) {
+      return res.status(200).json({
+        summary: { totalWishlists: 0, completed: 0, completionRate: 0 },
+        topItems: [],
+        wishlists: [],
+      });
+    }
+
+    // ✅ Count totals
     const totalWishlists = wishlists.length;
     const completed = wishlists.filter((w) => w.items.length > 0).length;
-    const completionRate = totalWishlists
-      ? Math.round((completed / totalWishlists) * 100)
-      : 0;
+    const completionRate = Math.round((completed / totalWishlists) * 100);
 
-    const itemCounter = {};
+    // ✅ Count top items
+    const itemCounts = {};
     for (const w of wishlists) {
-      for (const i of w.items) {
-        const clean = i.item?.trim().toLowerCase();
-        if (!clean) continue;
-        itemCounter[clean] = (itemCounter[clean] || 0) + 1;
+      for (const item of w.items) {
+        const name = item.item?.trim().toLowerCase();
+        if (!name) continue;
+        itemCounts[name] = (itemCounts[name] || 0) + 1;
       }
     }
 
-    const topItems = Object.entries(itemCounter)
+    const topItems = Object.entries(itemCounts)
       .map(([item, count]) => ({ item, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
@@ -64,7 +71,7 @@ export default async function handler(req, res) {
       wishlists,
     });
   } catch (error) {
-    console.error("❌ Error fetching wishlists:", error);
-    res.status(500).json({ error: "Failed to fetch wishlists" });
+    console.error("❌ Error fetching wishlist data:", error);
+    res.status(500).json({ error: "Failed to fetch wishlist analytics" });
   }
 }
