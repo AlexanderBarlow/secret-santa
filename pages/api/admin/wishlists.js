@@ -47,9 +47,10 @@ export default async function handler(req, res) {
       .slice(0, 10);
 
     // Wishlist activity by date
+    // Aggregate wishlist creation by date
     const activityMap = {};
     for (const w of wishlists) {
-      const dateKey = w.createdAt.toISOString().split("T")[0];
+      const dateKey = w.createdAt.toISOString().slice(0, 10);
       activityMap[dateKey] = (activityMap[dateKey] || 0) + 1;
     }
 

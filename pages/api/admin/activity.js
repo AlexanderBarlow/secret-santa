@@ -49,10 +49,9 @@ export default async function handler(req, res) {
     }
 
     // Wishlist creation/update — any wishlist counts as wishlist activity
+    // Track wishlist creation/update
     for (const w of wishlists) {
-      const dateStr =
-        w.updatedAt?.toISOString().split("T")[0] ||
-        w.createdAt.toISOString().split("T")[0];
+      const dateStr = (w.updatedAt || w.createdAt).toISOString().slice(0, 10);
       const entry = last14Days.find((d) => d.date === dateStr);
       if (entry) entry.wishlist += 1;
     }
