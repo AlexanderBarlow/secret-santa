@@ -64,33 +64,37 @@ export default function EditProfile({ user, refreshUser }) {
     >
       <h2 className="text-xl font-semibold mb-4">👤 Edit Profile</h2>
 
-      {/* Status Badge */}
+      {/* 🟡 Status Badge */}
       <div className="mb-6 relative flex flex-col items-center z-30">
         {accountPending ? (
-          <div className="flex items-center gap-2 bg-yellow-400/30 text-yellow-100 border border-yellow-400/50 px-4 py-2 rounded-full text-sm font-medium shadow-[0_0_12px_rgba(255,220,100,0.4)] animate-pulse-soft relative">
-            <span>⚠️ Pending Acceptance</span>
+          <div className="flex flex-wrap items-center justify-center gap-2 bg-yellow-400/25 text-yellow-100 border border-yellow-400/50 px-3 py-2 rounded-xl text-[13px] sm:text-sm font-medium shadow-[0_0_10px_rgba(255,220,100,0.4)] animate-pulse-soft relative max-w-[90%] text-center">
+            <span className="leading-snug">⚠️ Pending Approval</span>
+
             <button
               onMouseEnter={() => setShowInfo(true)}
               onMouseLeave={() => setShowInfo(false)}
               onFocus={() => setShowInfo(true)}
               onBlur={() => setShowInfo(false)}
-              className="text-yellow-200 hover:text-yellow-100"
+              className="text-yellow-200 hover:text-yellow-100 flex-shrink-0"
             >
               <Info className="w-4 h-4" />
             </button>
 
-            {/* Tooltip (layered above everything) */}
+            {/* Tooltip (responsive placement) */}
             <AnimatePresence>
               {showInfo && (
                 <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.95 }}
-                  animate={{ opacity: 1, y: -12, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[50] bg-yellow-100/95 text-[#0b1437] text-xs font-medium px-3 py-2 rounded-lg shadow-lg border border-yellow-200 max-w-[240px] backdrop-blur-md"
+                  className="absolute left-1/2 -translate-x-1/2 top-full sm:top-auto sm:bottom-full mt-3 sm:mb-2 z-[50]
+                             bg-yellow-50/95 text-[#0b1437] text-xs font-medium px-3 py-2
+                             rounded-lg shadow-lg border border-yellow-200 w-[90vw] sm:w-auto sm:max-w-[240px]
+                             backdrop-blur-md"
                 >
-                  Your account is currently pending admin approval. Once
-                  approved, you’ll gain full Secret Santa access 🎁
+                  Your account is waiting for admin approval. Once approved,
+                  full Secret&nbsp;Santa access will unlock 🎁
                 </motion.div>
               )}
             </AnimatePresence>
@@ -102,7 +106,7 @@ export default function EditProfile({ user, refreshUser }) {
         )}
       </div>
 
-      {/* Profile Picture */}
+      {/* 🖼️ Profile Picture */}
       <div className="relative flex flex-col items-center gap-4 z-10">
         <div className="relative">
           <img
@@ -115,7 +119,7 @@ export default function EditProfile({ user, refreshUser }) {
           </button>
         </div>
 
-        {/* Name Field */}
+        {/* 🧍 Name Field */}
         <div className="relative w-full">
           <User className="absolute left-3 top-2.5 w-4 h-4 text-white/60" />
           <input
@@ -127,7 +131,7 @@ export default function EditProfile({ user, refreshUser }) {
           />
         </div>
 
-        {/* Password Field */}
+        {/* 🔒 Password Field */}
         <div className="relative w-full">
           <Lock className="absolute left-3 top-2.5 w-4 h-4 text-white/60" />
           <input
@@ -139,7 +143,7 @@ export default function EditProfile({ user, refreshUser }) {
           />
         </div>
 
-        {/* Save Button */}
+        {/* 💾 Save Button */}
         <button
           onClick={handleSave}
           disabled={saving}
@@ -161,7 +165,7 @@ export default function EditProfile({ user, refreshUser }) {
         </button>
       </div>
 
-      {/* Feedback Banner */}
+      {/* 🧾 Feedback Banner */}
       <div className="mt-4 min-h-[32px]">
         <AnimatePresence>
           {status.kind !== "idle" && (
@@ -169,11 +173,10 @@ export default function EditProfile({ user, refreshUser }) {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className={`mx-auto w-full text-center text-sm px-3 py-2 rounded-xl border backdrop-blur-md ${
-                status.kind === "success"
+              className={`mx-auto w-full text-center text-sm px-3 py-2 rounded-xl border backdrop-blur-md ${status.kind === "success"
                   ? "bg-green-500/20 border-green-400/40 text-green-100"
                   : "bg-red-500/20 border-red-400/40 text-red-100"
-              }`}
+                }`}
             >
               {status.message}
             </motion.div>
@@ -181,7 +184,7 @@ export default function EditProfile({ user, refreshUser }) {
         </AnimatePresence>
       </div>
 
-      {/* Soft Pulse Animation */}
+      {/* ✨ Soft Pulse Animation */}
       <style jsx>{`
         @keyframes softPulse {
           0%,

@@ -5,12 +5,35 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, LogOut, Trash2, Plus, Save } from "lucide-react";
+import { Home, LogOut } from "lucide-react";
 import LanguageSwitcher from "../components/languageswitcher";
 import EditProfile from "../components/EditProfile";
 import UserSanta from "../components/UserSanta";
 import UserInfoCard from "../components/UserInfoCard";
 import UserNavbar from "../components/UserNavbar";
+import SnowfallLayer from "../components/SnowfallLayer";
+
+
+/* ---------------- Helper: Inappropriate Word Detection ---------------- */
+const BAD_WORDS = [
+  "fuck",
+  "shit",
+  "bitch",
+  "asshole",
+  "dick",
+  "pussy",
+  "cunt",
+  "nigger",
+  "kike",
+  "chink",
+  "spic",
+  "faggot",
+  "kill myself",
+  "suicide",
+  "hang myself",
+];
+const isInappropriate = (text = "") =>
+  BAD_WORDS.some((w) => text.toLowerCase().includes(w));
 
 /* ---------------- Frosted Button ---------------- */
 const FrostedButton = ({ onClick, icon, label, className = "" }) => (
@@ -84,20 +107,100 @@ export default function UserDashboard() {
     fetchUserData();
   }, [router]);
 
+  /* ------------ Wishlist Validation ------------ */
+  const validateWishlist = (items) => {
+    const trimmed = items.map((s) => (s ?? "").trim());
+    const invalidSet = new Set();
+    const filtered = [];
+
+    trimmed.forEach((val, idx) => {
+      if (!val) return;
+      const tooLong = val.length > 120;
+      const bad = isInappropriate(val);
+      if (bad || tooLong) invalidSet.add(idx);
+      else filtered.push(val);
+    });
+
+    return { limited: filtered.slice(0, 5), invalidSet };
+  };
+
+  /* ------------ Save Wishlist ------------ */
+  const handleAddToWishlist = async () => {
+    setSaving(true);
+    setSaveStatus({ kind: "idle", message: "" });
+
+    const { limited, invalidSet } = validateWishlist(wishlistInputs);
+    setInvalidIndices(invalidSet);
+
+    if (invalidSet.size > 0) {
+      setSaving(false);
+      setSaveStatus({
+        kind: "error",
+        message:
+          "Some items were flagged or invalid. Please review highlighted fields.",
+      });
+      return;
+    }
+
+    if (!limited.length) {
+      setSaving(false);
+      setSaveStatus({
+        kind: "error",
+        message: "Please add at least one valid item before saving.",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        "/api/admin/users/addwishlist",
+        { wishlist: limited },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.status === 200) {
+        setSaveStatus({
+          kind: "success",
+          message: "Wishlist saved successfully! 🎁",
+        });
+        setWishlistInputs(limited);
+      } else {
+        throw new Error("Non-200 response");
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      setSaveStatus({
+        kind: "error",
+        message: "There was an error saving your wishlist. Please try again.",
+      });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveStatus({ kind: "idle", message: "" }), 2500);
+    }
+  };
+
+  /* ------------ Logout ------------ */
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/auth/signin");
   };
 
+  /* ------------ Refresh User ------------ */
   const refreshUser = async () => {
     await fetchUserData();
   };
 
   return (
     <div className="relative min-h-screen text-white overflow-hidden bg-gradient-to-b from-[#0b1437] via-[#1a2e5c] to-[#2e4372]">
+      {/* ❄️ Animated Snow Layers */}
+      <SnowfallLayer count={35} speed={0.6} size={2} opacity={0.4} zIndex={1} />
+      <SnowfallLayer count={20} speed={0.9} size={3} opacity={0.6} zIndex={2} />
+      <SnowfallLayer count={15} speed={1.2} size={4} opacity={0.8} zIndex={3} />
+
       <LanguageSwitcher theme="dark" />
 
-
+      {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -126,20 +229,22 @@ export default function UserDashboard() {
                 invalidIndices={invalidIndices}
                 saving={saving}
                 saveStatus={saveStatus}
-                onSave={() => {}}
+                onSave={handleAddToWishlist}
                 t={t}
               />
             )}
+
             {tab === "profile" && (
               <EditProfile user={user} refreshUser={refreshUser} />
             )}
+
             {tab === "santa" && (
-                <UserSanta
-                  matchedSanta={matchedSanta}
-                  matchedSantaWishlist={matchedSantaWishlist}
-                  eventDetails={eventDetails}
-                  t={t}
-                />
+              <UserSanta
+                matchedSanta={matchedSanta}
+                matchedSantaWishlist={matchedSantaWishlist}
+                eventDetails={eventDetails}
+                t={t}
+              />
             )}
           </AnimatePresence>
         )}
