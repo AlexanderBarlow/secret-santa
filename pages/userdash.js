@@ -97,21 +97,6 @@ export default function UserDashboard() {
     <div className="relative min-h-screen text-white overflow-hidden bg-gradient-to-b from-[#0b1437] via-[#1a2e5c] to-[#2e4372]">
       <LanguageSwitcher theme="dark" />
 
-      {/* ---------- Optional Pending Banner ---------- */}
-      <AnimatePresence>
-        {showPendingAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.4 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-400/30 border border-yellow-300/60 text-yellow-100 text-sm font-medium px-5 py-2 rounded-full shadow-lg backdrop-blur-md z-50"
-          >
-            ⚠️ Your account is pending admin approval. Full access will unlock
-            once approved 🎁
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <motion.header
         initial={{ opacity: 0, y: -10 }}
