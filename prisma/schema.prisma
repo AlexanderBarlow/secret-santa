@@ -1,12 +1,11 @@
 generator client {
   provider = "prisma-client-js"
   binaryTargets = ["native", "darwin", "darwin-arm64", "windows"]
-
 }
 
 datasource postgres {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -21,17 +20,18 @@ model User {
 
   wishlist        Wishlist?
 
-  // Define the first side of the relation (matchedSanta) with fields and references
+  // Santa pairing relations
   matchedSanta    User?    @relation("UserSanta", fields: [matchedSantaId], references: [id])
   matchedSantaId  Int?     @unique
-
-  // Define the reverse relation for matchedBy (without fields and references)
   matchedBy       User?    @relation("UserSanta")
 
   Accepted        Boolean  @default(false)
-
   role            Role     @default(FRONT_OF_HOUSE)
   profilePicture  String
+
+  // 👇 NEW back-relations for the Question model
+  askedQuestions   Question[] @relation("AskerQuestions")
+  receivedQuestions Question[] @relation("ReceiverQuestions")
 }
 
 enum Role {
@@ -55,18 +55,32 @@ model WishlistItem {
   wishlist   Wishlist  @relation(fields: [wishlistId], references: [id])
   wishlistId Int
   item       String
-
   createdAt  DateTime  @default(now())
-}
 
+  // 👇 NEW back-relation for Question model
+  questions  Question[]
+}
 
 model AdminCode {
   id              Int       @id @default(autoincrement())
-  eventDate       DateTime?  // Temporarily nullable
-  matchSantaDate  DateTime?  // Temporarily nullable
-  overview        String?    // Temporarily nullable
+  eventDate       DateTime?
+  matchSantaDate  DateTime?
+  overview        String?
   code            String   @unique
 }
 
+model Question {
+  id              Int      @id @default(autoincrement())
+  askerId         Int
+  receiverId      Int
+  wishlistItemId  Int
+  questionText    String
+  answerText      String?
+  isAnswered      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-
+  asker        User         @relation("AskerQuestions", fields: [askerId], references: [id])
+  receiver     User         @relation("ReceiverQuestions", fields: [receiverId], references: [id])
+  wishlistItem WishlistItem @relation(fields: [wishlistItemId], references: [id])
+}

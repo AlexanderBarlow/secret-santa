@@ -1,8 +1,18 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageCircle } from "lucide-react";
+import AskQuestionModal from "./AskQuestionModal";
 
-export default function UserSanta({ matchedSanta, matchedSantaWishlist, t }) {
+export default function UserSanta({
+  matchedSanta,
+  matchedSantaWishlist,
+  t,
+  userId, // <-- Pass current user's ID here
+}) {
+  const [activeItem, setActiveItem] = useState(null);
+
   return (
     <motion.div
       key="santa"
@@ -26,15 +36,28 @@ export default function UserSanta({ matchedSanta, matchedSantaWishlist, t }) {
             🎁 {t("Their Wishlist")}
           </h4>
 
-          <div className="flex flex-wrap justify-center gap-2 mt-3">
+          <div className="flex flex-col items-center gap-2 mt-3">
             {matchedSantaWishlist.length > 0 ? (
               matchedSantaWishlist.map((item, i) => (
-                <span
-                  key={i}
-                  className="bg-sky-400/30 px-3 py-1.5 rounded-full text-sm"
+                <motion.div
+                  key={item.id}
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2 w-full max-w-sm"
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 200 }}
                 >
-                  {item.item}
-                </span>
+                  <span className="text-white/90 text-sm">
+                    {i + 1}. {item.item}
+                  </span>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 text-pink-400 hover:text-pink-300"
+                    onClick={() => setActiveItem(item)}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-xs font-medium">{t("Ask")}</span>
+                  </motion.button>
+                </motion.div>
               ))
             ) : (
               <p className="opacity-70">{t("No Wishlist Yet!")}</p>
@@ -44,6 +67,18 @@ export default function UserSanta({ matchedSanta, matchedSantaWishlist, t }) {
       ) : (
         <p className="opacity-70">{t("No Match Yet")}</p>
       )}
+
+      {/* Ask Question Modal */}
+      <AnimatePresence>
+        {activeItem && (
+          <AskQuestionModal
+            item={activeItem}
+            receiverId={matchedSanta.id} // recipient
+            askerId={userId} // logged-in user
+            onClose={() => setActiveItem(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

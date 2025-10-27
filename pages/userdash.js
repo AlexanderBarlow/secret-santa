@@ -152,6 +152,7 @@ export default function UserDashboard() {
               <UserSanta
                 matchedSanta={matchedSanta}
                 matchedSantaWishlist={matchedSantaWishlist}
+                userId={user.id}
                 t={t}
               />
             )}
