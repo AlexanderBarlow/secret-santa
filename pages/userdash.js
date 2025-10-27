@@ -134,11 +134,12 @@ export default function UserDashboard() {
               <EditProfile user={user} refreshUser={refreshUser} />
             )}
             {tab === "santa" && (
-              <UserSanta
-                matchedSanta={matchedSanta}
-                matchedSantaWishlist={matchedSantaWishlist}
-                t={t}
-              />
+                <UserSanta
+                  matchedSanta={matchedSanta}
+                  matchedSantaWishlist={matchedSantaWishlist}
+                  eventDetails={eventDetails}
+                  t={t}
+                />
             )}
           </AnimatePresence>
         )}
