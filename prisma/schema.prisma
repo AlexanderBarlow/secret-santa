@@ -56,6 +56,7 @@ model WishlistItem {
   wishlistId Int
   item       String
   createdAt  DateTime  @default(now())
+  updatedAt     DateTime      @updatedAt
 
   // 👇 NEW back-relation for Question model
   questions  Question[]
