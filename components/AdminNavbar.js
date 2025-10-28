@@ -7,6 +7,7 @@ import {
   faGift,
   faSignOutAlt,
   faChartSimple,
+  faComments,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -18,6 +19,7 @@ export default function AdminNavbar() {
     { href: "/admin/adduser", icon: faPlus, label: "Event", color: "#FFD54F" },   // gold
     { href: "/admin/matchsanta", icon: faGift, label: "Match", color: "#FF6B81" }, // Santa red
     { href: "/admin/analytics", icon: faChartSimple, label: "Stats", color: "#BA68C8" }, // festive purple
+    { href: "/admin/questions", icon: faComments, label: "Chats", color: "#81C784" }, // NEW ✅ — chat green
   ];
 
   const handleLogout = async () => {
@@ -70,21 +72,22 @@ export default function AdminNavbar() {
 
         {/* Navigation Items */}
         {navItems.map((item) => {
+          if (!item.href) return null; // ✅ Prevent undefined href errors
+
           const isActive = router.pathname === item.href;
           return (
             <motion.div key={item.href} whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.9 }}>
               <Link
                 href={item.href}
-                className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? "drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "opacity-90"
+                className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive
+                    ? "drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]"
+                    : "opacity-90"
                   }`}
               >
                 <motion.div
                   animate={
                     isActive
-                      ? {
-                        scale: [1, 1.15, 1],
-                        opacity: [1, 0.8, 1],
-                      }
+                      ? { scale: [1, 1.15, 1], opacity: [1, 0.8, 1] }
                       : {}
                   }
                   transition={{

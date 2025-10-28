@@ -14,27 +14,36 @@ export default async function handler(req, res) {
   }
 
   try {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 13); // 14-day window
+
     const [users, wishlists] = await Promise.all([
       prisma.user.findMany({
+        where: { createdAt: { gte: startDate } },
         select: { id: true, createdAt: true, matchedSantaId: true },
       }),
       prisma.wishlist.findMany({
-        include: { items: true },
+        where: {
+          OR: [
+            { createdAt: { gte: startDate } },
+            { updatedAt: { gte: startDate } },
+          ],
+        },
+        select: { createdAt: true, updatedAt: true },
         orderBy: { createdAt: "asc" },
       }),
     ]);
 
-    const today = new Date();
-
-    // Build last 14 days baseline
+    // Build 14-day baseline
     const last14Days = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() - (13 - i));
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
       return {
         date: d.toISOString().split("T")[0],
-        signup: 0,
-        match: 0,
-        wishlist: 0,
+        signups: 0,
+        matches: 0,
+        wishlists: 0,
       };
     });
 
@@ -43,17 +52,16 @@ export default async function handler(req, res) {
       const dateStr = user.createdAt.toISOString().split("T")[0];
       const entry = last14Days.find((d) => d.date === dateStr);
       if (entry) {
-        entry.signup += 1;
-        if (user.matchedSantaId) entry.match += 1;
+        entry.signups += 1;
+        if (user.matchedSantaId) entry.matches += 1;
       }
     }
 
-    // Wishlist creation/update — any wishlist counts as wishlist activity
-    // Track wishlist creation/update
+    // Wishlist updates
     for (const w of wishlists) {
-      const dateStr = (w.updatedAt || w.createdAt).toISOString().slice(0, 10);
+      const dateStr = (w.updatedAt || w.createdAt).toISOString().split("T")[0];
       const entry = last14Days.find((d) => d.date === dateStr);
-      if (entry) entry.wishlist += 1;
+      if (entry) entry.wishlists += 1;
     }
 
     const summary = {
