@@ -243,6 +243,7 @@ export default function UserDashboard() {
                 matchedSanta={matchedSanta}
                 matchedSantaWishlist={matchedSanta?.wishlist?.items || []}
                 userId={user.id}
+                eventDetails={eventDetails}
                 t={t}
               />
             )}
