@@ -137,13 +137,14 @@ export default function UserInfoCard({
         className="lg:w-1/2 flex flex-col justify-center items-center"
       >
         <WishlistForm
+          userId={user.id} // 👈 This is required
           wishlistInputs={wishlistInputs}
           setWishlistInputs={setWishlistInputs}
           invalidIndices={invalidIndices}
           saving={saving}
           saveStatus={saveStatus}
-          onSave={onSave}
         />
+
       </motion.div>
     </motion.div>
   );
