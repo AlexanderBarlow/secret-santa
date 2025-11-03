@@ -193,18 +193,29 @@ export default function UserDashboard() {
 
   return (
     <div className="relative min-h-screen text-white overflow-hidden bg-gradient-to-b from-[#0b1437] via-[#1a2e5c] to-[#2e4372]">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="
+    absolute top-5 right-6 z-[50]
+  "
+      >
+        <LanguageSwitcher theme="dark" />
+      </motion.div>
+
       {/* ❄️ Animated Snow Layers */}
       <SnowfallLayer count={35} speed={0.6} size={2} opacity={0.4} zIndex={1} />
       <SnowfallLayer count={20} speed={0.9} size={3} opacity={0.6} zIndex={2} />
       <SnowfallLayer count={15} speed={1.2} size={4} opacity={0.8} zIndex={3} />
 
-      <LanguageSwitcher theme="dark" />
+     
 
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center pt-8 pb-6"
+        className="text-center pt-16 pb-6"
       >
         <h1 className="text-5xl font-extrabold bg-gradient-to-r from-red-400 via-emerald-300 to-sky-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
           🎄 Secret Santa
@@ -264,3 +275,14 @@ export default function UserDashboard() {
     </div>
   );
 }
+
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+
+export async function getStaticProps({ locale }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale, ["common"])),
+    },
+  };
+}
+

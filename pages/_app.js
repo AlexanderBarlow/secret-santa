@@ -3,6 +3,7 @@ import { AuthProvider } from "../context/AuthContext";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useRouter } from "next/router";
 import { appWithTranslation } from "next-i18next";
+import nextI18NextConfig from "../next-i18next.config.js"; // ✅ import config
 import Head from "next/head";
 import { useEffect } from "react";
 
@@ -26,25 +27,27 @@ function App({ Component, pageProps }) {
   return (
     <>
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
         <link rel="manifest" href="/manifest.json" />
 
-        {/* PWA theme */}
-        <meta name="theme-color" content="transparent" /> {/* ✅ transparent status bar on Android */}
-
-        {/* Android */}
+        <meta name="theme-color" content="transparent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="CFA Secret Santa" />
-
-        {/* iOS */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" /> {/* ✅ transparent notch */}
-        <meta name="apple-mobile-web-app-title" content="CFA Secret Santa" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="default"
+        />
+        <meta
+          name="apple-mobile-web-app-title"
+          content="CFA Secret Santa"
+        />
         <link rel="apple-touch-icon" href="/candy.jpg" />
       </Head>
 
-
-      {/* Root layout wrapper */}
       <div className="relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto text-white bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <AuthProvider>
           {isPublicPage ? (
@@ -60,4 +63,5 @@ function App({ Component, pageProps }) {
   );
 }
 
-export default appWithTranslation(App);
+// ✅ Pass config explicitly so hooks get the right i18n instance
+export default appWithTranslation(App, nextI18NextConfig);

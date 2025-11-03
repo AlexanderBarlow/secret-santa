@@ -1,74 +1,86 @@
-import { useTranslation } from "react-i18next";
+"use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { motion } from "framer-motion";
 
 export default function LanguageSwitcher({ theme = "auto" }) {
-  const { i18n } = useTranslation();
-  const [language, setLanguage] = useState(i18n.language);
+  const router = useRouter();
+  const [language, setLanguage] = useState(router.locale || "en");
   const [isDark, setIsDark] = useState(theme === "dark");
 
   useEffect(() => {
     if (theme === "auto") {
-      const bgColor = window.getComputedStyle(document.body).backgroundColor;
-      const rgb = bgColor.match(/\d+/g)?.map(Number) || [255, 255, 255];
-      const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
-      setIsDark(brightness < 128);
-    } else {
-      setIsDark(theme === "dark");
+      const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      setIsDark(darkQuery.matches);
+      const handleChange = (e) => setIsDark(e.matches);
+      darkQuery.addEventListener("change", handleChange);
+      return () => darkQuery.removeEventListener("change", handleChange);
     }
   }, [theme]);
 
-  const switchLanguage = (lang) => {
-    i18n.changeLanguage(lang);
-    setLanguage(lang);
+  const toggleLanguage = () => {
+    const newLang = language === "en" ? "es" : "en";
+    setLanguage(newLang);
+    router.push(router.asPath, router.asPath, { locale: newLang });
   };
 
   return (
-    <div
-      className={`fixed top-2 right-2 z-50 flex items-center gap-1 px-2 py-1 rounded-full border shadow-sm backdrop-blur-md transition-all duration-300 ${
-        isDark
-          ? "bg-white/10 border-white/20 text-white"
-          : "bg-black/10 border-black/20 text-black"
-      }`}
+    <motion.button
+      onClick={toggleLanguage}
+      whileTap={{ scale: 0.97 }}
+      className={`relative flex items-center justify-between w-20 h-9 rounded-full backdrop-blur-md border transition-all overflow-hidden
+        ${isDark
+          ? "bg-white/10 border-white/20"
+          : "bg-white/40 border-white/60"
+        } shadow-[0_4px_20px_rgba(0,0,0,0.15)]`}
     >
-      {/* EN */}
-      <span
-        className={`text-[10px] font-medium ${
-          language === "en"
-            ? "opacity-100"
-            : isDark
-            ? "opacity-50 text-white/70"
-            : "opacity-50 text-black/70"
-        }`}
-      >
-        EN
-      </span>
+      {/* Glow ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full bg-gradient-to-r from-red-400/30 to-pink-400/30 blur-lg"
+        animate={{
+          opacity: [0.3, 0.6, 0.3],
+        }}
+        transition={{
+          repeat: Infinity,
+          duration: 4,
+          ease: "easeInOut",
+        }}
+      />
 
-      {/* Toggle Switch */}
-      <div
-        onClick={() => switchLanguage(language === "en" ? "es" : "en")}
-        className={`relative w-7 h-3 flex items-center rounded-full p-[1px] cursor-pointer transition-all duration-300 ${
-          isDark ? "bg-white/30" : "bg-black/30"
-        }`}
-      >
-        <div
-          className={`w-2.5 h-2.5 rounded-full shadow-md transform transition-transform duration-300 ${
-            isDark ? "bg-white" : "bg-black"
-          } ${language === "es" ? "translate-x-3.5" : "translate-x-0"}`}
-        />
+      {/* Sliding knob */}
+      <motion.div
+        layout
+        className={`absolute top-[3px] w-[calc(50%-4px)] h-[calc(100%-6px)] rounded-full shadow-lg 
+        ${isDark ? "bg-white/30" : "bg-white/70"}`}
+        animate={{
+          x: language === "en" ? 2 : 40,
+        }}
+        transition={{ type: "spring", stiffness: 250, damping: 20 }}
+      />
+
+      {/* Labels */}
+      <div className="relative z-10 flex justify-between w-full px-3 text-[13px] font-semibold tracking-wide">
+        <span
+          className={`transition-colors ${language === "en"
+              ? "text-red-500 drop-shadow-sm"
+              : isDark
+                ? "text-white/60"
+                : "text-gray-600/60"
+            }`}
+        >
+          EN
+        </span>
+        <span
+          className={`transition-colors ${language === "es"
+              ? "text-green-500 drop-shadow-sm"
+              : isDark
+                ? "text-white/60"
+                : "text-gray-600/60"
+            }`}
+        >
+          ES
+        </span>
       </div>
-
-      {/* ES */}
-      <span
-        className={`text-[10px] font-medium ${
-          language === "es"
-            ? "opacity-100"
-            : isDark
-            ? "opacity-50 text-white/70"
-            : "opacity-50 text-black/70"
-        }`}
-      >
-        ES
-      </span>
-    </div>
+    </motion.button>
   );
 }

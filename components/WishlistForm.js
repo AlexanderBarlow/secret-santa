@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Plus, Save, MessageCircle } from "lucide-react";
 import FrostedButton from "./FrostedButton";
 import axios from "axios";
-import QuestionModal from "./QuestionModal"; // New modal for conversation
+import QuestionModal from "./QuestionModal";
 import { useTranslation } from "react-i18next";
 
 const MAX_ITEMS = 5;
@@ -32,10 +32,15 @@ export default function WishlistForm({
       .catch((err) => console.error("Error fetching questions:", err));
   }, [userId]);
 
-  /* ---------------- Helper: Find Question by Item ---------------- */
-  const getQuestionsForItem = (itemText) => {
-    return questions.filter((q) => q.wishlistItem.item === itemText);
-  };
+  /* ---------------- Helpers ---------------- */
+  const getQuestionsForItem = (itemText) =>
+    questions.filter((q) => q.wishlistItem.item === itemText);
+
+  // 🔴 Unanswered question indicator
+  const hasUnansweredQuestion = (itemText) =>
+    questions.some(
+      (q) => q.wishlistItem.item === itemText && !q.isAnswered
+    );
 
   const canAdd = wishlistInputs.length < MAX_ITEMS;
 
@@ -59,7 +64,7 @@ export default function WishlistForm({
   const remaining = MAX_ITEMS - wishlistInputs.length;
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-white/80 text-sm">
@@ -89,6 +94,7 @@ export default function WishlistForm({
                 exit={{ opacity: 0, y: -10, scale: 0.98 }}
                 className="flex items-center gap-2 relative"
               >
+                {/* Input */}
                 <motion.input
                   type="text"
                   value={item}
@@ -101,28 +107,36 @@ export default function WishlistForm({
                   whileFocus={{ scale: 1.01 }}
                 />
 
-                {/* 🏷️ Delete Button */}
-                <FrostedButton
-                  onClick={() => handleDelete(i)}
-                  label="Delete Item"
-                  icon={<Trash2 className="w-4 h-4" />}
-                  className="!w-10 !h-10"
-                />
+                {/* Buttons container (mobile-friendly) */}
+                <div className="flex items-center gap-2">
+                  {/* 💬 Question Flag */}
+                  {hasQuestion && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() =>
+                        setActiveItem({ item, questions: relatedQuestions })
+                      }
+                      className="relative w-10 h-10 flex items-center justify-center rounded-full bg-pink-500/50 hover:bg-pink-400/70 border border-white/30 shadow-lg"
+                      title="View questions about this item"
+                    >
+                      <MessageCircle className="w-4 h-4 text-white" />
 
-                {/* 💬 Question Flag */}
-                {hasQuestion && (
-                  <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() =>
-                      setActiveItem({ item, questions: relatedQuestions })
-                    }
-                    className="absolute right-14 bg-pink-500/50 hover:bg-pink-400/70 rounded-full p-2 border border-white/30 shadow-lg"
-                    title="View questions about this item"
-                  >
-                    <MessageCircle className="w-4 h-4 text-white" />
-                  </motion.button>
-                )}
+                      {/* 🔴 Indicator for unanswered questions */}
+                      {hasUnansweredQuestion(item) && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-400/90 rounded-full shadow-[0_0_6px_rgba(255,100,100,0.7)] animate-[pulse_1.5s_infinite]" />
+                      )}
+                    </motion.button>
+                  )}
+
+                  {/* 🗑️ Delete Button */}
+                  <FrostedButton
+                    onClick={() => handleDelete(i)}
+                    label="Delete Item"
+                    icon={<Trash2 className="w-4 h-4" />}
+                    className="!w-10 !h-10"
+                  />
+                </div>
               </motion.div>
             );
           })}
@@ -130,7 +144,7 @@ export default function WishlistForm({
       </div>
 
       {/* Actions */}
-      <div className="flex justify-center gap-3 pt-5">
+      <div className="flex justify-center gap-3 pt-5 flex-wrap">
         <FrostedButton
           onClick={handleAddWishlistItem}
           label="Add Item"
@@ -181,6 +195,7 @@ export default function WishlistForm({
                 .then((res) => setQuestions(res.data.questions || []))
             }
           />
+
         )}
       </AnimatePresence>
     </div>

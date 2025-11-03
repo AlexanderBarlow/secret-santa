@@ -4,13 +4,14 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "next-i18next";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import LanguageSwitcher from "../../components/languageswitcher";
 import DownloadBtn from "../../components/DownloadBtn";
 import { motion } from "framer-motion";
 
 export default function SignIn() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("common");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -104,10 +105,7 @@ export default function SignIn() {
 
         <form onSubmit={handleSignIn} className="space-y-5">
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               {t("Full Name")}
             </label>
             <input
@@ -122,10 +120,7 @@ export default function SignIn() {
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               {t("Password")}
             </label>
             <input
@@ -144,11 +139,8 @@ export default function SignIn() {
               {error}
             </p>
           )}
-          {loading && (
-            <p className="text-center text-gray-600">{t("loading_sign_in")}</p>
-          )}
+          {loading && <p className="text-center text-gray-600">{t("loading_sign_in")}</p>}
 
-          {/* Frosted Sign In Button */}
           <motion.button
             whileHover={{ scale: 1.03, backgroundColor: "#dc2626" }}
             whileTap={{ scale: 0.97 }}
@@ -172,3 +164,12 @@ export default function SignIn() {
     </div>
   );
 }
+
+export async function getStaticProps({ locale }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale, ["common"])),
+    },
+  };
+}
+
