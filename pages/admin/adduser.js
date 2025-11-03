@@ -82,7 +82,7 @@ export default function SetAdminCode() {
 	};
 
 	return (
-		<div className="flex flex-col min-h-screen bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white relative">
+		<div className="flex flex-col min-h-screen bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white relative pb-12">
 			{/* Header */}
 			<header className="sticky top-0 z-50 backdrop-blur-xl bg-white/10 border-b border-white/20 shadow-lg">
 				<div className="max-w-5xl mx-auto flex justify-between items-center p-4 sm:p-5">
