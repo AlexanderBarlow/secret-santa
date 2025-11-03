@@ -7,6 +7,7 @@ import {
   faGift,
   faSignOutAlt,
   faChartSimple,
+  faComments,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -14,10 +15,11 @@ export default function AdminNavbar() {
   const router = useRouter();
 
   const navItems = [
-    { href: "/admin/dashboard", icon: faUsers, label: "Users", color: "#4FC3F7" }, // icy blue
-    { href: "/admin/adduser", icon: faPlus, label: "Event", color: "#FFD54F" },   // gold
-    { href: "/admin/matchsanta", icon: faGift, label: "Match", color: "#FF6B81" }, // Santa red
-    { href: "/admin/analytics", icon: faChartSimple, label: "Stats", color: "#BA68C8" }, // festive purple
+    { href: "/admin/dashboard", icon: faUsers, label: "Users", color: "#4FC3F7" },
+    { href: "/admin/adduser", icon: faPlus, label: "Event", color: "#FFD54F" },
+    { href: "/admin/matchsanta", icon: faGift, label: "Match", color: "#FF6B81" },
+    { href: "/admin/analytics", icon: faChartSimple, label: "Stats", color: "#BA68C8" },
+    { href: "/admin/questions", icon: faComments, label: "Chats", color: "#81C784" },
   ];
 
   const handleLogout = async () => {
@@ -33,19 +35,22 @@ export default function AdminNavbar() {
   };
 
   return (
-    <div className="fixed bottom-4 left-0 right-0 z-50 pointer-events-none">
+    <div className="fixed bottom-3 left-0 right-0 z-50 pointer-events-none">
       <motion.nav
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 120, damping: 16 }}
-        className="pointer-events-auto mx-auto w-[88%] sm:w-[70%] md:w-[55%] lg:w-[40%] rounded-[2.5rem] px-6 py-3 bg-white/15 backdrop-blur-2xl border border-white/25 shadow-[0_8px_35px_rgba(0,0,0,0.3)] flex justify-around items-center relative overflow-hidden"
+        className="pointer-events-auto mx-auto w-[95%] sm:w-[80%] md:w-[55%] lg:w-[40%]
+                   rounded-[2.5rem] px-4 sm:px-6 py-3 sm:py-4 bg-white/15 backdrop-blur-2xl 
+                   border border-white/25 shadow-[0_8px_35px_rgba(0,0,0,0.3)] 
+                   flex justify-between sm:justify-around items-center relative overflow-hidden"
       >
-        {/* Shimmer reflection */}
+        {/* ✨ Shimmer Reflection */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[2.5rem]">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
         </div>
 
-        {/* Active Glow Indicator */}
+        {/* 💫 Active Glow Indicator */}
         <AnimatePresence>
           {navItems.map(
             (item, index) =>
@@ -53,9 +58,9 @@ export default function AdminNavbar() {
                 <motion.div
                   key={item.href}
                   layoutId="nav-glow"
-                  className="absolute top-1/2 -translate-y-1/2 h-[46px] w-[60px] rounded-full blur-lg"
+                  className="absolute top-1/2 -translate-y-1/2 h-[46px] w-[58px] rounded-full blur-lg"
                   style={{
-                    left: `calc(${(index + 0.7) * 18}%)`,
+                    left: `calc(${(index + 0.6) * 17}%)`,
                     background: `radial-gradient(circle at center, ${item.color}66, transparent 70%)`,
                   }}
                   transition={{
@@ -68,23 +73,28 @@ export default function AdminNavbar() {
           )}
         </AnimatePresence>
 
-        {/* Navigation Items */}
+        {/* 🌟 Navigation Items */}
         {navItems.map((item) => {
+          if (!item.href) return null;
           const isActive = router.pathname === item.href;
+
           return (
-            <motion.div key={item.href} whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.9 }}>
+            <motion.div
+              key={item.href}
+              whileHover={{ scale: 1.25 }}
+              whileTap={{ scale: 0.9 }}
+              className="flex flex-col items-center"
+            >
               <Link
                 href={item.href}
-                className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? "drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "opacity-90"
-                  }`}
+                className={`flex flex-col items-center justify-center transition-all duration-300
+                  ${isActive ? "drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "opacity-90"}
+                `}
               >
                 <motion.div
                   animate={
                     isActive
-                      ? {
-                        scale: [1, 1.15, 1],
-                        opacity: [1, 0.8, 1],
-                      }
+                      ? { scale: [1, 1.15, 1], opacity: [1, 0.8, 1] }
                       : {}
                   }
                   transition={{
@@ -95,7 +105,7 @@ export default function AdminNavbar() {
                 >
                   <FontAwesomeIcon
                     icon={item.icon}
-                    className="text-[1.25rem] sm:text-[1.1rem]"
+                    className="text-[1.5rem] sm:text-[1.25rem]"
                     style={{
                       color: isActive ? item.color : item.color + "CC",
                       filter: isActive
@@ -104,7 +114,7 @@ export default function AdminNavbar() {
                     }}
                   />
                 </motion.div>
-                <span className="text-[0.65rem] font-semibold mt-[2px] hidden sm:block text-white/90">
+                <span className="text-[0.65rem] font-semibold mt-[2px] text-white/90 hidden xs:block sm:block">
                   {item.label}
                 </span>
               </Link>
@@ -112,7 +122,7 @@ export default function AdminNavbar() {
           );
         })}
 
-        {/* Logout Button */}
+        {/* 🚪 Logout Button */}
         <motion.button
           onClick={handleLogout}
           whileHover={{ scale: 1.2 }}
@@ -121,16 +131,16 @@ export default function AdminNavbar() {
         >
           <FontAwesomeIcon
             icon={faSignOutAlt}
-            className="text-[1.25rem]"
+            className="text-[1.5rem] sm:text-[1.25rem]"
             style={{ color: "#FF4D4D" }}
           />
-          <span className="text-[0.65rem] font-semibold mt-[2px] hidden sm:block">
+          <span className="text-[0.65rem] font-semibold mt-[2px] hidden xs:block sm:block">
             Logout
           </span>
         </motion.button>
       </motion.nav>
 
-      {/* ✨ Animations */}
+      {/* ✨ Shimmer Animation */}
       <style jsx>{`
         @keyframes shimmer {
           0% {
@@ -142,6 +152,13 @@ export default function AdminNavbar() {
         }
         .animate-shimmer {
           animation: shimmer 7s linear infinite;
+        }
+
+        @media (max-width: 640px) {
+          nav {
+            padding: 0.75rem 1rem;
+            border-radius: 2rem;
+          }
         }
       `}</style>
     </div>

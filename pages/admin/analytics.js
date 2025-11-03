@@ -330,16 +330,18 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Top Wishlist Items */}
+            {/* Top Wishlist Items */}
             <div className="rounded-2xl p-4 border border-white/20 bg-white/10 backdrop-blur-lg shadow-xl">
               <div className="font-semibold mb-3 flex items-center gap-2">
                 <Gift className="w-4 h-4" /> Top Wishlist Items
               </div>
-              {!Array.isArray(wishlists) ? (
+
+              {!wishlists?.topItems ? (
                 <EmptyState>No wishlist data yet.</EmptyState>
               ) : topItems.length === 0 ? (
                 <EmptyState>No items yet.</EmptyState>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   {topItems.map((it, i) => (
                     <motion.span
                       key={it.name + i}
@@ -357,6 +359,7 @@ export default function AdminAnalytics() {
                 </div>
               )}
             </div>
+
           </div>
 
           {/* Live Participation Pulse */}
