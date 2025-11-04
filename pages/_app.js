@@ -37,14 +37,14 @@ function App({ Component, pageProps }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="CFA Secret Santa" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="default"
-        />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta
           name="apple-mobile-web-app-title"
           content="CFA Secret Santa"
         />
+        <meta name="theme-color" content="transparent" media="(prefers-color-scheme: light)"/>
+        <meta name="theme-color" content="transparent" media="(prefers-color-scheme: dark)"/>
+
         <link rel="apple-touch-icon" href="/candy.jpg" />
       </Head>
 

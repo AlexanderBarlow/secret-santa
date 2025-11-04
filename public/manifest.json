@@ -1,22 +1,12 @@
 {
   "name": "CFA Secret Santa",
-  "short_name": "CFA SS",
-  "description": "A simple app that allows CFA workers to sign up for Secret Santa and track event details.",
+  "short_name": "SecretSanta",
   "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "transparent",
+  "display": "fullscreen",
+  "background_color": "#1a1a40",
   "theme_color": "transparent",
   "icons": [
-    {
-      "src": "/candy.jpg",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/candy.jpg",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/candy.jpg", "sizes": "192x192", "type": "image/jpeg" },
+    { "src": "/candy.jpg", "sizes": "512x512", "type": "image/jpeg" }
   ]
 }
