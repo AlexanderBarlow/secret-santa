@@ -14,30 +14,13 @@ export default function PWAInstallButton({ theme = "auto" }) {
 		const handleBeforeInstallPrompt = (event) => {
 			event.preventDefault();
 			setInstallPrompt(event);
+			localStorage.setItem("installPromptReady", "true");
 		};
 		window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-		// Detect standalone mode or previously installed
-		if (
-			window.matchMedia("(display-mode: standalone)").matches ||
-			localStorage.getItem("pwaInstalled") === "true"
-		) {
-			setIsInstalled(true);
-		}
-
-		const handleAppInstalled = () => {
-			localStorage.setItem("pwaInstalled", "true");
-			setJustInstalled(true);
-			setTimeout(() => setIsInstalled(true), 1600);
-		};
-
-		window.addEventListener("appinstalled", handleAppInstalled);
-
-		return () => {
-			window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-			window.removeEventListener("appinstalled", handleAppInstalled);
-		};
+		return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 	}, []);
+
+
 
 	// 🌗 Auto theme mode
 	useEffect(() => {
