@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, ChevronDown, ChevronUp } from "lucide-react";
+import { Gift, ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
 
 export default function UserCard({ user, handleAcceptUser, openDeleteModal }) {
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <motion.div
@@ -15,11 +16,11 @@ export default function UserCard({ user, handleAcceptUser, openDeleteModal }) {
                  shadow-[0_0_25px_rgba(255,255,255,0.1)] hover:shadow-[0_0_35px_rgba(255,255,255,0.15)] 
                  p-6 flex flex-col text-white transition-all"
     >
-      {/* Frost overlay shimmer */}
+      {/* Frost shimmer overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent rounded-3xl pointer-events-none" />
 
       {/* Profile */}
-      <div className="flex flex-col items-center mb-5 relative z-10">
+      <div className="flex flex-col items-center mb-4 relative z-10">
         <img
           src={user.profilePicture || "/default-profile.png"}
           alt="Profile"
@@ -28,10 +29,31 @@ export default function UserCard({ user, handleAcceptUser, openDeleteModal }) {
         <h3 className="text-lg font-semibold mt-3 text-center tracking-wide">
           {user.email}
         </h3>
+
+        {/* Password (Inline Reveal) */}
+        <div className="flex items-center gap-2 mt-1">
+          <motion.span
+            key={showPassword ? "shown" : "hidden"}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2 }}
+            className="font-mono text-sm text-white/70 tracking-wider"
+          >
+            {showPassword ? user.password : "••••••••"}
+          </motion.span>
+          <button
+            onClick={() => setShowPassword(!showPassword)}
+            className="text-white/50 hover:text-white transition"
+            title={showPassword ? "Hide Password" : "Show Password"}
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Role & Status */}
-      <div className="flex justify-center gap-2 flex-wrap mb-5">
+      <div className="flex justify-center gap-2 flex-wrap mb-4">
         <span
           className={`text-xs font-medium px-3 py-1 rounded-full border border-white/20 
                       backdrop-blur-sm ${user.role === "FRONT_OF_HOUSE"
@@ -53,7 +75,7 @@ export default function UserCard({ user, handleAcceptUser, openDeleteModal }) {
       </div>
 
       {/* Matched Santa */}
-      <div className="text-center mb-4 bg-white/5 backdrop-blur-md rounded-xl py-3 border border-white/10">
+      <div className="text-center mb-3 bg-white/5 backdrop-blur-md rounded-xl py-3 border border-white/10">
         <h4 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
           🎅 Matched Santa
         </h4>
@@ -110,7 +132,7 @@ export default function UserCard({ user, handleAcceptUser, openDeleteModal }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mt-6">
+      <div className="flex gap-3 mt-5">
         {!user.Accepted && (
           <motion.button
             whileHover={{ scale: 1.04 }}

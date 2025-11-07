@@ -9,6 +9,7 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import LanguageSwitcher from "../../components/languageswitcher";
 import DownloadBtn from "../../components/DownloadBtn";
 import { motion } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignIn() {
   const { t } = useTranslation("common");
@@ -16,9 +17,11 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const [isValidToken, setIsValidToken] = useState(null);
 
+  // 🔐 Check for valid token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token && isValidToken === null) {
@@ -29,9 +32,9 @@ export default function SignIn() {
           setIsValidToken(false);
           return;
         }
-
-        if (decodedToken.isAdmin) router.push("/admin/dashboard");
-        else router.push("/userdash");
+        decodedToken.isAdmin
+          ? router.push("/admin/dashboard")
+          : router.push("/userdash");
         setIsValidToken(true);
       } catch (err) {
         console.error("Invalid token:", err);
@@ -41,13 +44,28 @@ export default function SignIn() {
     } else if (isValidToken === null) setIsValidToken(false);
   }, [isValidToken, router]);
 
+  // 🚀 Handle sign-in
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
+      setError("Please fill out all fields.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await axios.post("/api/auth/signin", { email, password });
+      const res = await axios.post("/api/auth/signin", {
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
       const { token } = res.data;
       if (!token) throw new Error("Invalid token");
+
       localStorage.setItem("token", token);
       const decodedToken = jwtDecode(token);
       decodedToken.isAdmin
@@ -69,8 +87,8 @@ export default function SignIn() {
   const navigateToCreateAccount = () => router.push("/auth/signup");
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[100dvh] w-full bg-gradient-to-br from-[#f9fafb] via-[#ffffff] to-[#eaf0fa] text-gray-900 overflow-hidden">
-      {/* Subtle background ornaments */}
+    <div className="relative flex flex-col items-center min-h-[100dvh] w-full px-4 sm:px-0 bg-gradient-to-br from-[#f9fafb] via-[#ffffff] to-[#eaf0fa] text-gray-900 overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      {/* Subtle ornaments */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-400/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
@@ -87,9 +105,15 @@ export default function SignIn() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="flex justify-center mb-6 mt-6"
+        className="flex justify-center mt-10 mb-6 sm:mt-12"
       >
-        <Image src="/logo.png" alt="Chick-fil-A Logo" width={180} height={70} />
+        <Image
+          src="/logo.png"
+          alt="Chick-fil-A Logo"
+          width={180}
+          height={70}
+          priority
+        />
       </motion.div>
 
       {/* Sign-in Card */}
@@ -97,15 +121,19 @@ export default function SignIn() {
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative w-[90%] sm:w-[400px] p-8 rounded-3xl bg-white/60 backdrop-blur-2xl border border-white/30 shadow-[0_8px_30px_rgba(0,0,0,0.12)] z-10"
+        className="relative w-full max-w-[400px] p-8 rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/30 shadow-[0_8px_30px_rgba(0,0,0,0.12)] z-10 sm:mb-10"
       >
         <h1 className="text-3xl font-semibold text-center mb-6 text-gray-900">
           {t("Sign In")}
         </h1>
 
         <form onSubmit={handleSignIn} className="space-y-5">
+          {/* Email / Full Name */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
               {t("Full Name")}
             </label>
             <input
@@ -114,35 +142,53 @@ export default function SignIn() {
               placeholder={t("John Doe")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full p-3 rounded-lg border border-gray-300 bg-white/70 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+              className="mt-2 w-full p-3 rounded-lg border border-gray-300 bg-white/80 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
               required
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          {/* Password Field with Reveal Toggle */}
+          <div className="relative">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
               {t("Password")}
             </label>
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder={t("••••••••")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full p-3 rounded-lg border border-gray-300 bg-white/70 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+              className="mt-2 w-full p-3 pr-10 rounded-lg border border-gray-300 bg-white/80 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-[42px] text-gray-500 hover:text-gray-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
 
+          {/* Error & Loading */}
           {error && (
             <p className="text-red-600 text-sm text-center bg-red-100 py-2 rounded-md">
               {error}
             </p>
           )}
-          {loading && <p className="text-center text-gray-600">{t("loading_sign_in")}</p>}
+          {loading && (
+            <p className="text-center text-gray-600">
+              {t("loading_sign_in")}
+            </p>
+          )}
 
+          {/* Submit Button */}
           <motion.button
-            whileHover={{ scale: 1.03, backgroundColor: "#dc2626" }}
+            whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             type="submit"
             className="w-full py-3 rounded-full font-semibold bg-gradient-to-r from-red-500/80 to-red-600/80 text-white shadow-lg backdrop-blur-md border border-white/20 hover:shadow-xl transition"
@@ -172,4 +218,3 @@ export async function getStaticProps({ locale }) {
     },
   };
 }
-
