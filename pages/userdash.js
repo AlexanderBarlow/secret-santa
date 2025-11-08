@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import LanguageSwitcher from "../components/languageswitcher";
 import EditProfile from "../components/EditProfile";
 import UserSanta from "../components/UserSanta";
 import UserInfoCard from "../components/UserInfoCard";
 import UserNavbar from "../components/UserNavbar";
 import SnowfallLayer from "../components/SnowfallLayer";
+import useAuthCheck from "../utils/useAuthCheck";
 
-
-/* ---------------- Helper: Inappropriate Word Detection ---------------- */
+/* ---------------- Inappropriate Word Detection ---------------- */
 const BAD_WORDS = [
   "fuck",
   "shit",
@@ -51,63 +51,71 @@ const FrostedButton = ({ onClick, icon, label, className = "" }) => (
 export default function UserDashboard() {
   const { t } = useTranslation();
   const router = useRouter();
+  const authStatus = useAuthCheck();
+
   const [user, setUser] = useState(null);
   const [wishlistInputs, setWishlistInputs] = useState([]);
   const [invalidIndices, setInvalidIndices] = useState(new Set());
   const [matchedSanta, setMatchedSanta] = useState(null);
-  const [matchedSantaWishlist, setMatchedSantaWishlist] = useState([]);
   const [eventDetails, setEventDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState({ kind: "idle", message: "" });
-  const [showPendingAlert, setShowPendingAlert] = useState(false);
   const dataFetched = useRef(false);
 
-  /* ------------ Fetch User Data ------------ */
-  const fetchUserData = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return router.push("/auth/signin");
-
-    try {
-      const [userRes, wishlistRes, eventRes] = await Promise.all([
-        axios.get("/api/userinfo", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get("/api/admin/users/addwishlist", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get("/api/admin/users/adduser"),
-      ]);
-
-      const userData = userRes.data || {};
-      setUser(userData);
-      setMatchedSanta(userData?.matchedSanta || null);
-      setEventDetails(eventRes.data || {});
-      setMatchedSantaWishlist(userData?.matchedSantaWishlist || []);
-
-      const wishlist = (wishlistRes.data?.wishlist || []).map(String);
-      setWishlistInputs(wishlist.length ? wishlist.slice(0, 5) : [""]);
-
-      // 👇 If user is pending, start them on the Profile tab
-      if (userData?.Accepted === false || userData?.status === "pending") {
-        setTab("profile");
-        setShowPendingAlert(true);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  /* 🔁 Redirect after expiration */
   useEffect(() => {
-    if (dataFetched.current) return;
-    dataFetched.current = true;
-    fetchUserData();
-  }, [router]);
+    if (authStatus === "expired") {
+      const timer = setTimeout(() => {
+        window.location.href = "/auth/signin";
+      }, 4000); // ⏳ 4s delay
+      return () => clearTimeout(timer);
+    }
+  }, [authStatus]);
 
-  /* ------------ Wishlist Validation ------------ */
+  /* ✅ Fetch only when token valid */
+  useEffect(() => {
+    if (authStatus !== "valid" || dataFetched.current) return;
+    dataFetched.current = true;
+
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return router.push("/auth/signin");
+
+        const [userRes, wishlistRes, eventRes] = await Promise.all([
+          axios.get("/api/userinfo", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("/api/admin/users/addwishlist", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("/api/admin/users/adduser"),
+        ]);
+
+        const userData = userRes.data || {};
+        setUser(userData);
+        setMatchedSanta(userData?.matchedSanta || null);
+        setEventDetails(eventRes.data || {});
+
+        const wishlist = (wishlistRes.data?.wishlist || []).map(String);
+        setWishlistInputs(wishlist.length ? wishlist.slice(0, 5) : [""]);
+
+        if (userData?.Accepted === false || userData?.status === "pending") {
+          setTab("profile");
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [authStatus, router]);
+
+  /* 🧩 Wishlist Validation */
   const validateWishlist = (items) => {
     const trimmed = items.map((s) => (s ?? "").trim());
     const invalidSet = new Set();
@@ -124,7 +132,7 @@ export default function UserDashboard() {
     return { limited: filtered.slice(0, 5), invalidSet };
   };
 
-  /* ------------ Save Wishlist ------------ */
+  /* 💾 Save Wishlist */
   const handleAddToWishlist = async () => {
     setSaving(true);
     setSaveStatus({ kind: "idle", message: "" });
@@ -133,41 +141,36 @@ export default function UserDashboard() {
     setInvalidIndices(invalidSet);
 
     if (invalidSet.size > 0) {
-      setSaving(false);
       setSaveStatus({
         kind: "error",
         message:
           "Some items were flagged or invalid. Please review highlighted fields.",
       });
+      setSaving(false);
       return;
     }
 
     if (!limited.length) {
-      setSaving(false);
       setSaveStatus({
         kind: "error",
         message: "Please add at least one valid item before saving.",
       });
+      setSaving(false);
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(
+      await axios.post(
         "/api/admin/users/addwishlist",
         { wishlist: limited },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (res.status === 200) {
-        setSaveStatus({
-          kind: "success",
-          message: "Wishlist saved successfully! 🎁",
-        });
-        setWishlistInputs(limited);
-      } else {
-        throw new Error("Non-200 response");
-      }
+      setSaveStatus({
+        kind: "success",
+        message: "Wishlist saved successfully! 🎁",
+      });
+      setWishlistInputs(limited);
     } catch (err) {
       console.error("Save error:", err);
       setSaveStatus({
@@ -180,36 +183,96 @@ export default function UserDashboard() {
     }
   };
 
-  /* ------------ Logout ------------ */
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/auth/signin");
   };
 
-  /* ------------ Refresh User ------------ */
-  const refreshUser = async () => {
-    await fetchUserData();
-  };
+  /* 🧩 Auth Screens */
+  if (authStatus === "checking") {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#0b1437] text-white text-lg font-bold">
+        Checking session...
+      </div>
+    );
+  }
 
+  if (authStatus === "expired") {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-red-900 via-red-700 to-red-600 text-white text-center p-6">
+        <motion.h1
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="text-4xl sm:text-5xl font-extrabold drop-shadow-lg mb-3"
+        >
+          🎁 SESSION EXPIRED 🎁
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-lg opacity-90"
+        >
+          Please sign in again.
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="text-sm opacity-70 mt-2"
+        >
+          Redirecting...
+        </motion.p>
+
+        {/* ❄️ Gentle snowfall effect */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(30)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-white rounded-full opacity-70 animate-[fall_6s_linear_infinite]"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * -100}%`,
+                animationDelay: `${Math.random() * 6}s`,
+                animationDuration: `${4 + Math.random() * 3}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        <style jsx>{`
+          @keyframes fall {
+            0% {
+              transform: translateY(0);
+              opacity: 1;
+            }
+            100% {
+              transform: translateY(120vh);
+              opacity: 0.6;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  /* 🧩 Main Dashboard */
   return (
     <div className="relative min-h-screen text-white overflow-hidden bg-gradient-to-b from-[#0b1437] via-[#1a2e5c] to-[#2e4372]">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="
-    absolute top-5 right-6 z-[50]
-  "
+        className="absolute top-5 right-6 z-[50]"
       >
         <LanguageSwitcher theme="dark" />
       </motion.div>
 
-      {/* ❄️ Animated Snow Layers */}
+      {/* ❄️ Snow Layers */}
       <SnowfallLayer count={35} speed={0.6} size={2} opacity={0.4} zIndex={1} />
       <SnowfallLayer count={20} speed={0.9} size={3} opacity={0.6} zIndex={2} />
       <SnowfallLayer count={15} speed={1.2} size={4} opacity={0.8} zIndex={3} />
-
-     
 
       {/* Header */}
       <motion.header
@@ -217,7 +280,7 @@ export default function UserDashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center pt-16 pb-6"
       >
-        <h1 className="text-5xl font-extrabold bg-gradient-to-r from-red-400 via-emerald-300 to-sky-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+        <h1 className="text-5xl font-extrabold bg-gradient-to-r from-red-400 via-emerald-300 to-sky-400 bg-clip-text text-transparent">
           🎄 Secret Santa
         </h1>
         <p className="text-white/80 text-sm mt-1">
@@ -225,7 +288,7 @@ export default function UserDashboard() {
         </p>
       </motion.header>
 
-      {/* ---------- Main Content ---------- */}
+      {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center pb-28">
         {loading ? (
           <p className="text-center text-white/70">{t("Loading...")}</p>
@@ -244,16 +307,17 @@ export default function UserDashboard() {
                 t={t}
               />
             )}
-
             {tab === "profile" && (
-              <EditProfile user={user} refreshUser={refreshUser} />
+              <EditProfile
+                user={user}
+                refreshUser={() => (dataFetched.current = false)}
+              />
             )}
-
             {tab === "santa" && (
               <UserSanta
                 matchedSanta={matchedSanta}
                 matchedSantaWishlist={matchedSanta?.wishlist?.items || []}
-                userId={user.id}
+                userId={user?.id}
                 eventDetails={eventDetails}
                 t={t}
               />
@@ -262,10 +326,7 @@ export default function UserDashboard() {
         )}
       </div>
 
-      {/* ---------- Navbar ---------- */}
       <UserNavbar tab={tab} setTab={setTab} user={user} />
-
-      {/* ---------- Logout ---------- */}
       <FrostedButton
         onClick={handleLogout}
         label="Logout"
@@ -275,14 +336,3 @@ export default function UserDashboard() {
     </div>
   );
 }
-
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-
-export async function getStaticProps({ locale }) {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale, ["common"])),
-    },
-  };
-}
-

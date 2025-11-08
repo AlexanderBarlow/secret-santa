@@ -5,8 +5,10 @@ import AdminNavbar from "../../components/AdminNavbar";
 import UserCard from "../../components/UserCard";
 import SkeletonCard from "../../components/SkeletonCard";
 import { motion, AnimatePresence } from "framer-motion";
+import useAuthCheck from "../../utils/useAuthCheck";
 
 export default function Dashboard() {
+  const authStatus = useAuthCheck();
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -14,10 +16,28 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
+  // ✅ Redirect timer for expired session
   useEffect(() => {
+    if (authStatus === "expired") {
+      const timer = setTimeout(() => {
+        window.location.href = "/auth/signin";
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [authStatus]);
+
+  // ✅ Fetch users only if token is valid
+  useEffect(() => {
+    if (authStatus !== "valid") return;
+
     const fetchData = async () => {
       try {
-        const res = await axios.get("/api/admin/users");
+        const token = localStorage.getItem("token");
+        if (!token) return (window.location.href = "/auth/signin");
+
+        const res = await axios.get("/api/admin/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (Array.isArray(res.data)) setUsers(res.data);
         else setUsers([]);
       } catch {
@@ -27,11 +47,16 @@ export default function Dashboard() {
       }
     };
     fetchData();
-  }, []);
+  }, [authStatus]);
 
   const handleAcceptUser = async (userId) => {
     try {
-      const res = await axios.post("/api/admin/users/accept", { id: userId });
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        "/api/admin/users/accept",
+        { id: userId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (res.status === 200) {
         setUsers((prev) =>
           prev.map((u) => (u.id === userId ? { ...u, Accepted: true } : u))
@@ -54,7 +79,13 @@ export default function Dashboard() {
 
   const handleRemoveUser = async () => {
     try {
-      const res = await axios.delete(`/api/admin/users/remove/${userToDelete}`);
+      const token = localStorage.getItem("token");
+      const res = await axios.delete(
+        `/api/admin/users/remove/${userToDelete}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (res.status === 200) {
         setUsers(users.filter((u) => u.id !== userToDelete));
         closeModal();
@@ -81,9 +112,49 @@ export default function Dashboard() {
     }
   });
 
-
   const pendingCount = users.filter((u) => !u.Accepted).length;
 
+  // 🧩 Handle session states
+  if (authStatus === "checking") {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#0b1437] text-white text-lg font-bold">
+        Checking session...
+      </div>
+    );
+  }
+
+  if (authStatus === "expired") {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-red-800 via-red-700 to-red-600 text-white text-center p-6">
+        <motion.h1
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="text-4xl sm:text-5xl font-extrabold drop-shadow-lg mb-3"
+        >
+          🎁 SESSION EXPIRED 🎁
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-lg opacity-90"
+        >
+          Please sign in again.
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="text-sm opacity-70 mt-2"
+        >
+          Redirecting...
+        </motion.p>
+      </div>
+    );
+  }
+
+  // 🧩 Main dashboard render
   return (
     <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-[#1a1a40] via-[#4054b2] to-[#1b1b2f] text-white overflow-hidden">
       {/* ✨ Gentle Snow Animation */}
@@ -109,7 +180,6 @@ export default function Dashboard() {
       </div>
 
       {/* 🎄 Header */}
-      {/* 🎄 Header */}
       <header className="relative z-10 text-center mt-6 sm:mt-10 px-4">
         <h1 className="text-3xl sm:text-5xl font-extrabold bg-gradient-to-r from-red-500 via-pink-300 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] leading-tight">
           Admin Dashboard 🎅
@@ -126,7 +196,6 @@ export default function Dashboard() {
 
         <div className="w-16 sm:w-24 h-1 mt-4 mx-auto bg-gradient-to-r from-red-500 via-white to-green-500 rounded-full shadow-lg"></div>
 
-        {/* 🎁 Pending Count (smaller + conditional) */}
         {pendingCount > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -143,12 +212,7 @@ export default function Dashboard() {
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1.05, opacity: 1 }}
               transition={{ type: "spring", stiffness: 150, damping: 10 }}
-              className={`text-lg sm:text-xl font-extrabold px-3 py-0.5 rounded-lg shadow 
-                   ${
-                     pendingCount > 0
-                       ? "bg-gradient-to-r from-yellow-400 via-red-400 to-pink-400 text-transparent bg-clip-text drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
-                       : "text-green-300"
-                   }`}
+              className="text-lg sm:text-xl font-extrabold px-3 py-0.5 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-400 text-transparent bg-clip-text drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
             >
               {pendingCount}
             </motion.span>
@@ -170,21 +234,11 @@ export default function Dashboard() {
                  appearance-none transition-all duration-300
                  hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]"
           >
-            <option value="all" className="bg-[#1a1a40] text-white">
-              🎅 All Users
-            </option>
-            <option value="pending" className="bg-[#1a1a40] text-white">
-              🕒 Pending Users
-            </option>
-            <option value="backOfHouse" className="bg-[#1a1a40] text-white">
-              👨‍🍳 Back of House
-            </option>
-            <option value="frontOfHouse" className="bg-[#1a1a40] text-white">
-              ☕ Front of House
-            </option>
+            <option value="all">🎅 All Users</option>
+            <option value="pending">🕒 Pending Users</option>
+            <option value="backOfHouse">👨‍🍳 Back of House</option>
+            <option value="frontOfHouse">☕ Front of House</option>
           </select>
-
-          {/* Custom dropdown arrow */}
           <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-white/80">
             ▼
           </div>
