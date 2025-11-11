@@ -6,6 +6,8 @@ import { MessageCircle, Lock, Unlock } from "lucide-react";
 import axios from "axios";
 import AskQuestionModal from "./AskQuestionModal";
 
+const APP_VERSION = "2.0.0"; // change when deploying major updates
+
 export default function UserSanta({
   matchedSanta,
   matchedSantaWishlist,
@@ -17,52 +19,84 @@ export default function UserSanta({
   const [questions, setQuestions] = useState([]);
   const [isRevealed, setIsRevealed] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
-  const [serverDate, setServerDate] = useState(null);
   const [revealDate, setRevealDate] = useState(null);
+  const [checking, setChecking] = useState(true);
 
-  /* 🧭 Verify reveal time with server */
+  /* 🧼 Version sanity — clear stale localStorage after updates */
   useEffect(() => {
+    const lastVersion = localStorage.getItem("appVersion");
+    if (lastVersion !== APP_VERSION) {
+      console.log("🧹 App updated — clearing stored state");
+      localStorage.clear();
+      localStorage.setItem("appVersion", APP_VERSION);
+    }
+  }, []);
+
+  /* 🕒 Server-verified reveal logic */
+  useEffect(() => {
+    let cancelled = false;
+
     const verifyReveal = async () => {
       try {
-        const res = await axios.get("/api/event/checkReveal");
-        const { nowUTC, matchSantaDateUTC } = res.data;
-
-        const now = new Date(nowUTC);
-        const reveal = new Date(matchSantaDateUTC);
-
-        setServerDate(now);
-        setRevealDate(reveal);
-
-        const hasPlayed = localStorage.getItem("santaRevealed");
-
-        // If already revealed before
-        if (hasPlayed === "true") {
-          setIsRevealed(true);
+        const res = await axios.get("/api/event/checkReveal", {
+          validateStatus: () => true,
+        });
+        if (!res || res.status !== 200) {
+          console.warn("⚠️ Reveal check failed, status:", res?.status);
+          setChecking(false);
           return;
         }
 
-        // Check if server time is after or equal to reveal date
-        if (now >= reveal) {
-          console.log("🎁 Server says it's reveal time!");
-          setShowAnimation(true);
-          setTimeout(() => {
-            setIsRevealed(true);
-            localStorage.setItem("santaRevealed", "true");
-          }, 1500);
-        } else {
+        const { nowUTC, matchSantaDateUTC } = res.data;
+        const now = new Date(nowUTC);
+        const reveal = new Date(matchSantaDateUTC);
+        if (cancelled) return;
+
+        setRevealDate(reveal);
+
+        const stored = localStorage.getItem("santaRevealed");
+
+        // 🛡️ If server says not yet → force lock
+        if (now < reveal) {
+          if (stored === "true") {
+            console.log("🔒 Re-locking — server says not time yet");
+            localStorage.removeItem("santaRevealed");
+          }
           setIsRevealed(false);
-          localStorage.removeItem("santaRevealed");
+          setShowAnimation(false);
+          setChecking(false);
+          return;
         }
+
+        // ✅ If already unlocked once → stay revealed
+        if (stored === "true") {
+          setIsRevealed(true);
+          setChecking(false);
+          return;
+        }
+
+        // 🎁 First-time unlock
+        console.log("🎉 Unlocking — server time reached match date");
+        setShowAnimation(true);
+        setTimeout(() => {
+          setIsRevealed(true);
+          localStorage.setItem("santaRevealed", "true");
+          setChecking(false);
+        }, 1500);
       } catch (err) {
-        console.error("Error verifying reveal date:", err);
+        console.error("Error verifying reveal:", err);
+        setChecking(false);
       }
     };
 
     verifyReveal();
-
-    // Recheck every minute to automatically unlock if time passes
-    const interval = setInterval(verifyReveal, 60000);
-    return () => clearInterval(interval);
+    const interval = setInterval(verifyReveal, 60000); // recheck each minute
+    window.addEventListener("online", verifyReveal);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("online", verifyReveal);
+    };
   }, []);
 
   /* 💬 Fetch questions */
@@ -74,11 +108,9 @@ export default function UserSanta({
       .catch((err) => console.error("Error fetching Santa questions:", err));
   }, [userId]);
 
-  /* Filter questions per wishlist item */
   const getItemQuestions = (itemId) =>
     questions.filter((q) => q.wishlistItemId === itemId);
 
-  /* ✨ Sparkle Unlock Animation */
   const sparkleVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: {
@@ -90,6 +122,14 @@ export default function UserSanta({
 
   const isLocked = !isRevealed;
 
+  if (checking) {
+    return (
+      <div className="w-full text-center text-white/70 py-10">
+        {t("Checking reveal status...")}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       key="santa"
@@ -99,7 +139,7 @@ export default function UserSanta({
       className="relative w-11/12 max-w-md rounded-3xl bg-gradient-to-br from-white/20 via-white/10 to-sky-400/10 
                  backdrop-blur-xl border border-white/30 p-6 sm:p-10 text-center overflow-hidden"
     >
-      {/* 🔒 Locked Overlay */}
+      {/* 🔒 Locked overlay */}
       {!isRevealed && (
         <div
           className="absolute inset-0 z-30 flex flex-col items-center justify-center 
@@ -117,7 +157,7 @@ export default function UserSanta({
         </div>
       )}
 
-      {/* ✨ Magical Unlock Animation (once only) */}
+      {/* ✨ One-time unlock animation */}
       <AnimatePresence>
         {showAnimation && (
           <motion.div
@@ -134,7 +174,7 @@ export default function UserSanta({
         )}
       </AnimatePresence>
 
-      {/* 🎅 Main Santa Content */}
+      {/* 🎅 Main content */}
       <motion.div
         className={`transition-all duration-700 ${
           isLocked ? "blur-md scale-[0.98]" : "blur-none scale-100"
@@ -169,7 +209,6 @@ export default function UserSanta({
                         <span className="text-white/90 text-sm font-medium">
                           {i + 1}. {item.item}
                         </span>
-
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
