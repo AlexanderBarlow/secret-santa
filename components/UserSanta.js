@@ -17,57 +17,53 @@ export default function UserSanta({
   const [questions, setQuestions] = useState([]);
   const [isRevealed, setIsRevealed] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [serverDate, setServerDate] = useState(null);
+  const [revealDate, setRevealDate] = useState(null);
 
-  /* 🕒 Reveal Handling — one-time animation */
+  /* 🧭 Verify reveal time with server */
   useEffect(() => {
-    if (!eventDetails?.matchSantaDate) {
-      console.warn("❌ No matchSantaDate found in eventDetails:", eventDetails);
-      return;
-    }
+    const verifyReveal = async () => {
+      try {
+        const res = await axios.get("/api/event/checkReveal");
+        const { nowUTC, matchSantaDateUTC } = res.data;
 
-    const revealDate = new Date(eventDetails.matchSantaDate);
-    const now = new Date();
-    const hasPlayed = localStorage.getItem("santaRevealed");
+        const now = new Date(nowUTC);
+        const reveal = new Date(matchSantaDateUTC);
 
-    // already unlocked before → skip animation
-    if (hasPlayed === "true") {
-      setIsRevealed(true);
-      return;
-    }
+        setServerDate(now);
+        setRevealDate(reveal);
 
-    if (isNaN(revealDate.getTime())) {
-      console.warn("⚠️ Invalid matchSantaDate format:", eventDetails.matchSantaDate);
-      return;
-    }
+        const hasPlayed = localStorage.getItem("santaRevealed");
 
-    const shouldReveal =
-      now.toDateString() === revealDate.toDateString() || now > revealDate;
-
-    if (shouldReveal) {
-      console.log("🎁 One-time reveal triggered!");
-      setShowAnimation(true);
-      setTimeout(() => {
-        setIsRevealed(true);
-        localStorage.setItem("santaRevealed", "true"); // ✅ mark revealed
-      }, 1500);
-    }
-
-    // background timer (auto-reveal once date passes)
-    const interval = setInterval(() => {
-      const nowCheck = new Date();
-      if (nowCheck >= revealDate && !isRevealed) {
-        console.log("🎉 Auto reveal (live)!");
-        setShowAnimation(true);
-        setTimeout(() => {
+        // If already revealed before
+        if (hasPlayed === "true") {
           setIsRevealed(true);
-          localStorage.setItem("santaRevealed", "true");
-        }, 1500);
-        clearInterval(interval);
-      }
-    }, 60000);
+          return;
+        }
 
+        // Check if server time is after or equal to reveal date
+        if (now >= reveal) {
+          console.log("🎁 Server says it's reveal time!");
+          setShowAnimation(true);
+          setTimeout(() => {
+            setIsRevealed(true);
+            localStorage.setItem("santaRevealed", "true");
+          }, 1500);
+        } else {
+          setIsRevealed(false);
+          localStorage.removeItem("santaRevealed");
+        }
+      } catch (err) {
+        console.error("Error verifying reveal date:", err);
+      }
+    };
+
+    verifyReveal();
+
+    // Recheck every minute to automatically unlock if time passes
+    const interval = setInterval(verifyReveal, 60000);
     return () => clearInterval(interval);
-  }, [eventDetails?.matchSantaDate, isRevealed]);
+  }, []);
 
   /* 💬 Fetch questions */
   useEffect(() => {
@@ -105,17 +101,17 @@ export default function UserSanta({
     >
       {/* 🔒 Locked Overlay */}
       {!isRevealed && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center 
-                        backdrop-blur-2xl bg-black/40 rounded-3xl border border-white/20 transition-all duration-700">
+        <div
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center 
+                        backdrop-blur-2xl bg-black/40 rounded-3xl border border-white/20 transition-all duration-700"
+        >
           <Lock className="w-10 h-10 text-white/80 animate-pulse mb-3" />
           <p className="text-white/90 font-semibold mb-1">
             {t("Your Santa is hidden!")}
           </p>
           <p className="text-xs text-white/60">
-            {eventDetails?.matchSantaDate
-              ? `🎁 Reveals on ${new Date(
-                eventDetails.matchSantaDate
-              ).toLocaleDateString()}`
+            {revealDate
+              ? `🎁 Reveals on ${revealDate.toLocaleDateString()}`
               : "Match date not set"}
           </p>
         </div>
@@ -140,8 +136,9 @@ export default function UserSanta({
 
       {/* 🎅 Main Santa Content */}
       <motion.div
-        className={`transition-all duration-700 ${isLocked ? "blur-md scale-[0.98]" : "blur-none scale-100"
-          }`}
+        className={`transition-all duration-700 ${
+          isLocked ? "blur-md scale-[0.98]" : "blur-none scale-100"
+        }`}
       >
         {matchedSanta ? (
           <>
